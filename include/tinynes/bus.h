@@ -17,6 +17,10 @@ public:
     void write(uint64_t addr, uint8_t data);
     uint8_t read(uint64_t addr, bool read_only = false);
 
+    // device on the bus
+    CPU &cpu() { return cpu_; }
+    auto &ram() { return ram_; }
+
 private:
     CPU cpu_;
     std::array<uint8_t, 64 * 1024> ram_;

@@ -1,5 +1,8 @@
 #include "tinynes/cpu.h"
 #include "tinynes/bus.h"
+#include "tinynes/utils.h"
+
+#include <spdlog/fmt/fmt.h>
 
 namespace tn
 {
@@ -128,6 +131,106 @@ void CPU::clock()
     // update clock
     clock_count_ += 1;
     cycles_ -= 1;
+}
+
+bool CPU::complete() { return cycles_ == 0; }
+
+void CPU::disassemble(uint16_t addr_begin, uint16_t addr_end, ASMMap &asm_map)
+{
+    uint32_t line_addr;
+    uint32_t addr = addr_begin;
+    uint8_t value = 0x00;
+    uint8_t lo = 0x00;
+    uint8_t hi = 0x00;
+
+    while (addr <= addr_end) {
+        line_addr = addr;
+        std::string instruction = fmt::format("${}: ", tn::Utils::numToHex(addr, 4));
+
+        // read instruction
+        uint8_t opcode = bus_->read(addr, true);
+        addr += 1;
+        instruction.append(lookup_table_[opcode].mnemonic);
+        instruction.append(" ");
+
+        if (lookup_table_[opcode].addrmode == &CPU::IMP) {
+            instruction.append(" {{IMP}}");
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::IMM) {
+            value = bus_->read(addr, true);
+            addr += 1;
+            instruction.append(fmt::format("#${} {{IMM}}", tn::Utils::numToHex(value, 2)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::ZP0) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = 0x00;
+            instruction.append(fmt::format("${} {{ZP0}}", tn::Utils::numToHex(lo, 2)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::ZPX) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = 0x00;
+            instruction.append(fmt::format("${}, X {{ZPX}}", tn::Utils::numToHex(lo, 2)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::ZPY) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = 0x00;
+            instruction.append(fmt::format("(${}), Y {{ZPY}}", tn::Utils::numToHex(lo, 2)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::IZX) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = 0x00;
+            instruction.append(fmt::format("(${}), X {{IZX}}", tn::Utils::numToHex(lo, 2)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::IZY) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = 0x00;
+            instruction.append(fmt::format("${}, Y {{IZY}}", tn::Utils::numToHex(lo, 2)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::ABS) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = bus_->read(addr, true);
+            addr += 1;
+            instruction.append(fmt::format(
+                "${} {{ABS}}", tn::Utils::numToHex(static_cast<uint16_t>(hi << 8 | lo), 4)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::ABX) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = bus_->read(addr, true);
+            addr += 1;
+            instruction.append(fmt::format(
+                "${}, X {{ABX}}", tn::Utils::numToHex(static_cast<uint16_t>(hi << 8 | lo), 4)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::ABY) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = bus_->read(addr, true);
+            addr += 1;
+            instruction.append(fmt::format(
+                "${}, Y {{ABY}}", tn::Utils::numToHex(static_cast<uint16_t>(hi << 8 | lo), 4)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::IND) {
+            lo = bus_->read(addr, true);
+            addr += 1;
+            hi = bus_->read(addr, true);
+            addr += 1;
+            instruction.append(fmt::format(
+                "(${}) {{IND}}", tn::Utils::numToHex(static_cast<uint16_t>(hi << 8 | lo), 4)));
+        }
+        else if (lookup_table_[opcode].addrmode == &CPU::REL) {
+            value = bus_->read(addr, true);
+            addr += 1;
+            instruction.append(fmt::format("${} [${}] {{REL}}", tn::Utils::numToHex(value, 2),
+                                           tn::Utils::numToHex(addr + value, 4)));
+        }
+        asm_map[line_addr] = instruction;
+    }
 }
 
 // ADDRESSING MODES

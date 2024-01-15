@@ -3,6 +3,17 @@
 NES emulator based on 6052 CPU written from scratch.
 > This project based on [OneLoneCoder/olcNES](https://github.com/OneLoneCoder/olcNES), following rules described in **OneLoneCoder**'s license.
 
+## Prerequisite
+
+- Ubuntu 20.04 or higher
+- CMake 3.14 or higher
+- Install SFML2.x for graphic debug.
+
+```bash
+sudo apt-get install build-essential
+sudo apt-get install libsfml-dev
+```
+
 ## Reference
 
 - [NESDEV: NES reference guide](https://www.nesdev.org/wiki/NES_reference_guide)
@@ -12,4 +23,4 @@ NES emulator based on 6052 CPU written from scratch.
 
 ## License
 
-OLC-3
+MIT License

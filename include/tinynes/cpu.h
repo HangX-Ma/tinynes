@@ -23,6 +23,8 @@ class Bus;
 class CPU
 {
 public:
+    using ASMMap = std::map<uint16_t, std::string>;
+
     void connectBus(Bus *b) { bus_ = b; }
 
     // External event functions.
@@ -31,16 +33,17 @@ public:
     void nmi();   // Non-Maskable Interrupt Request - As above, but cannot be disabled
     void clock();
 
-private:
-    struct Reg
-    {
-        uint8_t a{0x00};      // accumulator
-        uint8_t x{0x00};      // index X
-        uint8_t y{0x00};      // index y
-        uint8_t st{0x00};     // stack pointer
-        uint16_t pc{0x000};   // program counter
-        uint8_t status{0x00}; // status register
-    } reg_;
+    bool complete(); // Instruction complete
+    void disassemble(uint16_t addr_begin, uint16_t addr_end, ASMMap &asm_map);
+
+public:
+    // reg access
+    uint8_t a() const { return reg_.a; };
+    uint8_t x() const { return reg_.x; };
+    uint8_t y() const { return reg_.y; };
+    uint8_t st() const { return reg_.st; };
+    uint8_t pc() const { return reg_.pc; };
+    uint8_t status() const { return reg_.status; }
 
     /// @ref status flags <https://www.nesdev.org/wiki/Status_flags>
     enum FLAGS6502
@@ -54,6 +57,19 @@ private:
         V = (1 << 6), // Overflow
         N = (1 << 7), // Negative
     };
+
+    bool checkFlag(FLAGS6502 flag) const { return (reg_.status & flag) != 0; }
+
+private:
+    struct Reg
+    {
+        uint8_t a{0x00};      // accumulator
+        uint8_t x{0x00};      // index X
+        uint8_t y{0x00};      // index y
+        uint8_t st{0x00};     // stack pointer
+        uint16_t pc{0x000};   // program counter
+        uint8_t status{0x00}; // status register
+    } reg_;
 
     bool getFlag(FLAGS6502 f);
     void setFlag(FLAGS6502 f, bool v);
