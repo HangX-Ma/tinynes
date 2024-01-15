@@ -143,7 +143,7 @@ void CPU::disassemble(uint16_t addr_begin, uint16_t addr_end, ASMMap &asm_map)
     uint8_t lo = 0x00;
     uint8_t hi = 0x00;
 
-    while (addr <= addr_end) {
+    while (addr <= static_cast<uint32_t>(addr_end)) {
         line_addr = addr;
         std::string instruction = fmt::format("${}: ", tn::Utils::numToHex(addr, 4));
 
@@ -159,37 +159,39 @@ void CPU::disassemble(uint16_t addr_begin, uint16_t addr_end, ASMMap &asm_map)
         else if (lookup_table_[opcode].addrmode == &CPU::IMM) {
             value = bus_->read(addr, true);
             addr += 1;
-            instruction.append(fmt::format("#${} {{IMM}}", tn::Utils::numToHex(value, 2)));
+            instruction.append(fmt::format("#$00{} {{IMM}}", tn::Utils::numToHex(value, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ZP0) {
             lo = bus_->read(addr, true);
             addr += 1;
             hi = 0x00;
-            instruction.append(fmt::format("${} {{ZP0}}", tn::Utils::numToHex(lo, 2)));
+            instruction.append(fmt::format("${:02}{} {{ZP0}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ZPX) {
             lo = bus_->read(addr, true);
             addr += 1;
             hi = 0x00;
-            instruction.append(fmt::format("${}, X {{ZPX}}", tn::Utils::numToHex(lo, 2)));
+            instruction.append(fmt::format("${:02}{}, X {{ZPX}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ZPY) {
             lo = bus_->read(addr, true);
             addr += 1;
             hi = 0x00;
-            instruction.append(fmt::format("(${}), Y {{ZPY}}", tn::Utils::numToHex(lo, 2)));
+            instruction.append(
+                fmt::format("(${:02}{}), Y {{ZPY}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::IZX) {
             lo = bus_->read(addr, true);
             addr += 1;
             hi = 0x00;
-            instruction.append(fmt::format("(${}), X {{IZX}}", tn::Utils::numToHex(lo, 2)));
+            instruction.append(
+                fmt::format("(${:02}{}), X {{IZX}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::IZY) {
             lo = bus_->read(addr, true);
             addr += 1;
             hi = 0x00;
-            instruction.append(fmt::format("${}, Y {{IZY}}", tn::Utils::numToHex(lo, 2)));
+            instruction.append(fmt::format("${:02}{}, Y {{IZY}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ABS) {
             lo = bus_->read(addr, true);
