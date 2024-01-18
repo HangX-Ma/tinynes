@@ -57,18 +57,18 @@ void CPU::irq()
     // If interrupts are allowed
     if (getFlag(I)) {
         // push PCH on stack, decrement stack pointer
-        write(0x100 + reg_.st, (reg_.pc & 0xFF00) >> 8);
+        write(0x100 + reg_.st, (reg_.pc >> 8) & 0xFF00);
         reg_.st -= 1;
         // push PCL on stack, decrement stack pointer
         write(0x100 + reg_.st, reg_.pc & 0x00FF);
         reg_.st -= 1;
-        // push status register on stack, decrement stack pointer
-        write(0x100 + reg_.st, reg_.status);
-        reg_.st -= 1;
 
+        // push status register on stack, decrement stack pointer
         setFlag(B, false);
         setFlag(U, true); // always set to 1
         setFlag(I, true); // set I flag to clear interrupt state
+        write(0x100 + reg_.st, reg_.status);
+        reg_.st -= 1;
 
         // fetch PCL and PCH from IRQ vector address
         addr_abs_ = IRQ_VECTOR;
@@ -85,18 +85,18 @@ void CPU::irq()
 void CPU::nmi()
 {
     // push PCH on stack, decrement stack pointer
-    write(0x100 + reg_.st, (reg_.pc & 0xFF00) >> 8);
+    write(0x100 + reg_.st, (reg_.pc >> 8) & 0xFF00);
     reg_.st -= 1;
     // push PCL on stack, decrement stack pointer
     write(0x100 + reg_.st, reg_.pc & 0x00FF);
     reg_.st -= 1;
-    // push status register on stack, decrement stack pointer
-    write(0x100 + reg_.st, reg_.status);
-    reg_.st -= 1;
 
+    // push status register on stack, decrement stack pointer
     setFlag(B, false);
     setFlag(U, true); // always set to 1
     setFlag(I, true); // set I flag to clear interrupt state
+    write(0x100 + reg_.st, reg_.status);
+    reg_.st -= 1;
 
     // fetch PCL and PCH from NMI vector address
     addr_abs_ = NMI_VECTOR;
@@ -114,17 +114,17 @@ void CPU::clock()
     if (cycles_ == 0) {
         // read next instruction byte to acquire the info about how to implement this instruction.
         opcode_ = read(reg_.pc);
-        reg_.pc += 1;
 
         // flag U is always 1
         setFlag(U, true);
+        reg_.pc += 1;
 
         // get next instruction cycles
         cycles_ = lookup_table_[opcode_].cycles;
 
         uint8_t additional_cycle1 = (this->*lookup_table_[opcode_].addrmode)();
         uint8_t additional_cycle2 = (this->*lookup_table_[opcode_].operate)();
-        cycles_ += (additional_cycle1 + additional_cycle2);
+        cycles_ += (additional_cycle1 & additional_cycle2);
 
         setFlag(U, true);
     }
@@ -137,7 +137,7 @@ bool CPU::complete() { return cycles_ == 0; }
 
 void CPU::disassemble(uint16_t addr_begin, uint16_t addr_end, ASMMap &asm_map)
 {
-    uint32_t line_addr;
+    uint32_t line_addr = 0;
     uint32_t addr = addr_begin;
     uint8_t value = 0x00;
     uint8_t lo = 0x00;
@@ -250,7 +250,8 @@ uint8_t CPU::IMP()
 
 // Mode: Immediate, 2 bytes
 // Use this mode instruction occupies 2 bytes. One byte for instruction itself.
-// Another for immediate number.
+// Another for immediate number. The instruction expects the next byte to be
+// used as a value, so we'll prep the read address to point to the next byte
 uint8_t CPU::IMM()
 {
     addr_abs_ = reg_.pc;
@@ -368,10 +369,10 @@ uint8_t CPU::IND()
 
     // we may encounter page boundary fault because next byte may cross two pages
     if (ptr_lo == 0x00FF) {
-        addr_abs_ = read(ptr & 0xFF00) << 8 | read(ptr);
+        addr_abs_ = (read(ptr & 0xFF00) << 8) | read(ptr);
     }
     else {
-        addr_abs_ = read(ptr + 1) << 8 | read(ptr);
+        addr_abs_ = (read(ptr + 1) << 8) | read(ptr);
     }
     return 0;
 }
@@ -461,7 +462,7 @@ uint8_t CPU::ADC()
     setFlag(V,
             (((static_cast<uint16_t>(reg_.a) & static_cast<uint16_t>(fetched_)) ^ temp_) & 0x0080)
                 != 0);
-    reg_.a = temp_ & 0x0080;
+    reg_.a = temp_ & 0x00FF;
 
     // potentially require 'oops' cycle if page boundary crossed
     return 1;
@@ -491,7 +492,7 @@ uint8_t CPU::ASL()
 
     temp_ = static_cast<uint16_t>(fetched_) << 1;
 
-    setFlag(C, temp_ > 0xFF);
+    setFlag(C, (temp_ & 0xFF00) > 0);
     setFlag(Z, (temp_ & 0x00FF) == 0);
     setFlag(N, (temp_ & 0x80) != 0);
 
@@ -1039,7 +1040,7 @@ uint8_t CPU::ROL()
 uint8_t CPU::ROR()
 {
     fetch();
-    temp_ = static_cast<uint16_t>(fetched_ >> 1) | static_cast<uint16_t>(getFlag(C)) << 7;
+    temp_ = static_cast<uint16_t>(fetched_ >> 1) | (static_cast<uint16_t>(getFlag(C)) << 7);
     setFlag(C, (fetched_ & 1) != 0);
     setFlag(Z, (temp_ & 0x00FF) == 0);
     setFlag(N, (temp_ & 0x80) != 0);

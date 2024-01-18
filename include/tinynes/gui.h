@@ -208,32 +208,31 @@ public:
         // draw lower part
         int ny = (line_num >> 1) * vspace + y; // locates to middle of the code part
         auto iter = asm_map.find(nes->cpu().pc());
-        do {
+        // spdlog::info("pc: {}", nes->cpu().pc());
+        if (iter != asm_map.end()) {
+            GUIUtils::setString(x, ny, iter->second, ONE_DARK.blue, content_, font_);
+            drawTo(window);
+        }
+        while (ny < line_num * vspace + y) {
             ny += vspace;
             if (++iter != asm_map.end()) {
-                const auto &[_ /*unused*/, txt] = *iter;
-                GUIUtils::setString(x, ny, txt, ONE_DARK.light_gray, content_, font_);
+                GUIUtils::setString(x, ny, iter->second, ONE_DARK.light_gray, content_, font_);
                 drawTo(window);
             }
         }
-        while (ny < line_num * vspace + y);
 
         // draw current instruction according to PC
         iter = asm_map.find(nes->cpu().pc());
         ny = (line_num >> 1) * vspace + y;
-        GUIUtils::setString(x, ny, iter->second, ONE_DARK.blue, content_, font_);
-        drawTo(window);
-
-        // draw upper part
-        do {
-            ny -= vspace;
-            if (--iter != asm_map.end()) {
-                const auto &[_ /*unused*/, txt] = *iter;
-                GUIUtils::setString(x, ny, txt, ONE_DARK.light_gray, content_, font_);
-                drawTo(window);
+        if (iter != asm_map.end()) {
+            while (ny > y) {
+                ny -= vspace;
+                if (--iter != asm_map.end()) {
+                    GUIUtils::setString(x, ny, iter->second, ONE_DARK.light_gray, content_, font_);
+                    drawTo(window);
+                }
             }
         }
-        while (ny > y);
     }
 
 private:
@@ -255,6 +254,9 @@ public:
 
         window_.create(sf::VideoMode(width, height), std::move(title));
         window_.setVerticalSyncEnabled(true);
+        window_.setPosition(sf::Vector2i(sf::VideoMode::getDesktopMode().width / 4,
+                                         sf::VideoMode::getDesktopMode().height / 4));
+
         nes_ = std::make_unique<tn::Bus>();
         loadProgram();
 
@@ -279,6 +281,10 @@ public:
 
             // run an instruction
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+                // wait until the 'space' key released
+                while (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+                    ;
+                }
                 do {
                     nes_->cpu().clock();
                 }
@@ -286,14 +292,26 @@ public:
             }
             // reset
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+                // wait until the 'reset' key released
+                while (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+                    ;
+                }
                 nes_->cpu().reset();
             }
             // interrupt
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
+                // wait until the 'interrupt' key released
+                while (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
+                    ;
+                }
                 nes_->cpu().irq();
             }
             // non maskable interrupt
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) {
+                // wait until the 'non maskable interrupt' key released
+                while (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) {
+                    ;
+                }
                 nes_->cpu().nmi();
             }
             renderCPU();
@@ -357,14 +375,13 @@ private:
     {
         uint16_t addr = 0x8000;
         std::stringstream ss;
-        std::string byte;
         // Load Program (assembled at https://www.masswerk.at/6502/assembler.html)
         ss << "A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88 D0 FA 8D 02 00 EA EA EA";
         while (!ss.eof()) {
+            std::string byte;
             ss >> byte;
             nes_->ram()[addr] = std::stoul(byte, nullptr, 16);
             addr += 1;
-            byte.clear();
         }
 
         // Reset vector

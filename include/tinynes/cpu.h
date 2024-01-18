@@ -42,7 +42,7 @@ public:
     uint8_t x() const { return reg_.x; };
     uint8_t y() const { return reg_.y; };
     uint8_t st() const { return reg_.st; };
-    uint8_t pc() const { return reg_.pc; };
+    uint16_t pc() const { return reg_.pc; };
     uint8_t status() const { return reg_.status; }
 
     /// @ref status flags <https://www.nesdev.org/wiki/Status_flags>
