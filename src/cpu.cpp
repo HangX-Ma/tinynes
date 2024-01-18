@@ -228,8 +228,9 @@ void CPU::disassemble(uint16_t addr_begin, uint16_t addr_end, ASMMap &asm_map)
         else if (lookup_table_[opcode].addrmode == &CPU::REL) {
             value = bus_->read(addr, true);
             addr += 1;
-            instruction.append(fmt::format("${} [${}] {{REL}}", tn::Utils::numToHex(value, 2),
-                                           tn::Utils::numToHex(addr + value, 4)));
+            instruction.append(
+                fmt::format("${} [${}] {{REL}}", tn::Utils::numToHex(value, 2),
+                            tn::Utils::numToHex(addr + static_cast<int8_t>(value), 4)));
         }
         asm_map[line_addr] = instruction;
     }
