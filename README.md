@@ -17,7 +17,7 @@ sudo apt-get install libsfml-dev
 ## Schedule
 
 - [x] _**STEP 1**_: Complete 6052 processor instruction set and adapt SFML graphic library
-- [ ] Add PPU(Picture Processing Unit) with other memory unit like ROM, Cartridge, etc
+- [ ] _**STEP 2**_: Add PPU(Picture Processing Unit) with other memory unit like ROM, Cartridge, etc
 
 ## NES Emulator Concept
 
@@ -34,6 +34,7 @@ All components are linked and managed by the _**main BUS**_. The bus takes the r
 ## Reference
 
 - [NES Dev wiki: NES reference guide](https://www.nesdev.org/wiki/NES_reference_guide)
+- [NES Cart Database](https://nescartdb.com)
 - [OneLoneCoder/olcNES](https://github.com/OneLoneCoder/olcNES)
 - [6502 Instruction Set](https://www.masswerk.at/6502/6502_instruction_set.html)
 - [6502CPU以及NES游戏机系统](http://49.212.183.201/6502/6502_report.htm)

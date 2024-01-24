@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/System/Time.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/VideoMode.hpp>
 #include <algorithm>
@@ -14,8 +15,10 @@
 #include <sstream>
 #include <string>
 
+#include "tinynes/cartridge.h"
 #include "tinynes/cpu.h"
 #include "tinynes/bus.h"
+#include "tinynes/ppu.h"
 #include "tinynes/utils.h"
 
 namespace gui
@@ -35,6 +38,7 @@ struct OneDark
     sf::Color dark{40, 44, 52};
 };
 static const OneDark ONE_DARK;
+static const std::string ROOT_DIR = TINYNES_WORKSPACE;
 
 class GUIUtils
 {
@@ -171,7 +175,7 @@ public:
 
             for (int col = 0; col < col_num; col += 1) {
                 txt.append(" ");
-                txt.append(tn::Utils::numToHex(nes->read(addr, true), 2));
+                txt.append(tn::Utils::numToHex(nes->cpuRead(addr, true), 2));
                 addr += 1;
             }
             GUIUtils::setString(x + offset, y, txt, sf::Color::White, txt_content_, font_);
@@ -246,84 +250,70 @@ private:
 class GUI
 {
 public:
-    void init(int width, int height, std::string title)
+    void init(int width, int height, const std::string &title)
     {
         if (!default_font_.loadFromFile("assets/UbuntuMono-Regular.ttf")) {
             spdlog::error("GUI default font failed!");
         }
 
-        window_.create(sf::VideoMode(width, height), std::move(title));
+        window_.create(sf::VideoMode(width, height), title);
         window_.setVerticalSyncEnabled(true);
         window_.setPosition(sf::Vector2i(sf::VideoMode::getDesktopMode().width / 4,
                                          sf::VideoMode::getDesktopMode().height / 4));
 
         nes_ = std::make_unique<tn::Bus>();
-        loadProgram();
-
-        sf::Vector2u wsize = window_.getSize();
-        module_pos_.cpu = sf::Vector2u(wsize.x * 0.7, wsize.y * 0.02);
-        module_pos_.ram_top = sf::Vector2u(wsize.x * 0.02, wsize.y * 0.02);
-        module_pos_.ram_bottom = sf::Vector2u(wsize.x * 0.02, wsize.y * 0.5);
-        module_pos_.code = sf::Vector2u(wsize.x * 0.7, wsize.y * 0.25);
     }
 
-    void loop()
+    void loadSimpleProgram()
     {
-        while (window_.isOpen()) {
-            sf::Event event;
-            while (window_.pollEvent(event)) {
-                if (event.type == sf::Event::Closed) {
-                    window_.close();
-                }
-            }
+        uint16_t addr = 0x8000;
+        std::stringstream ss;
+        // Load Program (assembled at https://www.masswerk.at/6502/assembler.html)
+        ss << "A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88 D0 FA 8D 02 00 EA EA EA";
+        while (!ss.eof()) {
+            std::string byte;
+            ss >> byte;
+            nes_->cpuRAM()[addr] = std::stoul(byte, nullptr, 16);
+            addr += 1;
+        }
 
-            window_.clear(ONE_DARK.dark);
+        // Reset vector
+        nes_->cpuRAM()[tn::RESET_VECTOR] = 0x00;
+        nes_->cpuRAM()[tn::RESET_VECTOR + 1] = 0x80;
 
-            // run an instruction
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-                // wait until the 'space' key released
-                while (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-                    ;
-                }
-                do {
-                    nes_->cpu().clock();
-                }
-                while (!nes_->cpu().complete());
-            }
-            // reset
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-                // wait until the 'reset' key released
-                while (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-                    ;
-                }
-                nes_->cpu().reset();
-            }
-            // interrupt
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
-                // wait until the 'interrupt' key released
-                while (sf::Keyboard::isKeyPressed(sf::Keyboard::I)) {
-                    ;
-                }
-                nes_->cpu().irq();
-            }
-            // non maskable interrupt
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) {
-                // wait until the 'non maskable interrupt' key released
-                while (sf::Keyboard::isKeyPressed(sf::Keyboard::N)) {
-                    ;
-                }
-                nes_->cpu().nmi();
-            }
-            renderCPU();
-            renderRAM();
-            renderCode();
-            renderInfo();
+        // IRQ vector
+        nes_->cpu().disassemble(0x0000, 0xFFFF, asm_map_);
+        nes_->cpu().reset();
+    }
 
-            window_.display();
+    void loadCartridge()
+    {
+        std::string file_path = ROOT_DIR + "/test/nesfiles/nestest.nes";
+        cart_ = std::make_shared<tn::Cartridge>(file_path);
+        if (!cart_->isNesFileLoaded()) {
+            spdlog::error("{} complains it cannot load {}", __func__, file_path);
+            return;
+        }
+
+        nes_->insertCartridge(cart_);
+        nes_->cpu().disassemble(0x0000, 0xFFFF, asm_map_);
+        nes_->reset();
+    }
+
+    void setCPUPosition(uint x, uint y) { module_pos_.cpu = {x, y}; }
+    void setRAMTopPosition(uint x, uint y) { module_pos_.ram_top = {x, y}; }
+    void setRAMBottomPosition(uint x, uint y) { module_pos_.ram_bottom = {x, y}; }
+    void setCodePosition(uint x, uint y) { module_pos_.code = {x, y}; }
+
+    auto &window() { return window_; }
+    auto &nes() { return nes_; }
+
+    void waitKeyReleased(sf::Keyboard::Key key)
+    {
+        while (sf::Keyboard::isKeyPressed(key)) {
         }
     }
 
-private:
     void renderCPU()
     {
         gui_cpu_.update(module_pos_.cpu.x, module_pos_.cpu.y, window_.getSize(), nes_->cpu());
@@ -371,29 +361,9 @@ private:
         window_.draw(default_txt_board_);
     }
 
-    void loadProgram()
-    {
-        uint16_t addr = 0x8000;
-        std::stringstream ss;
-        // Load Program (assembled at https://www.masswerk.at/6502/assembler.html)
-        ss << "A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88 D0 FA 8D 02 00 EA EA EA";
-        while (!ss.eof()) {
-            std::string byte;
-            ss >> byte;
-            nes_->ram()[addr] = std::stoul(byte, nullptr, 16);
-            addr += 1;
-        }
-
-        // Reset vector
-        nes_->ram()[tn::RESET_VECTOR] = 0x00;
-        nes_->ram()[tn::RESET_VECTOR + 1] = 0x80;
-        // IRQ vector
-        nes_->cpu().disassemble(0x0000, 0xFFFF, asm_map_);
-        nes_->cpu().reset();
-    }
-
 private:
     sf::RenderWindow window_;
+    std::shared_ptr<tn::Cartridge> cart_;
     std::unique_ptr<tn::Bus> nes_;
     tn::CPU::ASMMap asm_map_;
 

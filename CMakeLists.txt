@@ -17,13 +17,24 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+# =================================
+#              libtinynes
+# =================================
+
 # Add sources
-file(GLOB TINYNES_SOURCES
-    ${PROJECT_SOURCE_DIR}/main.cpp
-    ${PROJECT_SOURCE_DIR}/src/*.cpp
+set(TINYNES_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/bus.cpp
+    ${CMAKE_SOURCE_DIR}/src/cpu.cpp
+    ${CMAKE_SOURCE_DIR}/src/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/src/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/src/mappers/mapper000.cpp
 )
 
-
+# SFML
+find_package(SFML 2 REQUIRED COMPONENTS audio graphics window system)
+if(NOT SFML_FOUND)
+    message(STATUS "Make sure the SFML libraries exist.")
+endif()
 # Set static if BUILD_STATIC is set
 if (BUILD_STATIC)
     set(SFML_STATIC_LIBRARIES TRUE)
@@ -33,19 +44,49 @@ if (BUILD_STATIC)
     endif()
 endif()
 
-# SFML
-find_package(SFML 2 REQUIRED COMPONENTS audio graphics window system)
-if(NOT SFML_FOUND)
-    message(STATUS "Make sure the SFML libraries exist.")
-endif()
-
 # spdlog
 find_package(spdlog REQUIRED)
 
-add_executable(tinynes ${TINYNES_SOURCES})
-target_include_directories(tinynes PUBLIC "${PROJECT_SOURCE_DIR}/include" ${SFML_INCLUDE_DIR})
+# tinynes library
+add_library(tinynes STATIC ${TINYNES_SOURCES})
+target_include_directories(tinynes PUBLIC "${CMAKE_SOURCE_DIR}/include" ${SFML_INCLUDE_DIR})
 target_link_libraries(tinynes PRIVATE ${SFML_LIBRARIES} ${SFML_DEPENDENCIES} spdlog::spdlog_header_only)
 set_target_properties(
     tinynes PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON)
+target_compile_definitions(tinynes
+    PUBLIC "TINYNES_WORKSPACE=\"${CMAKE_SOURCE_DIR}\"")
+
+# =================================
+#              Demo
+# =================================
+add_subdirectory(demo)
+
+# =================================
+#              Test
+# =================================
+# GTest
+find_package(Threads REQUIRED)
+find_package(GTest REQUIRED)
+if (GTest_FOUND)
+    message(STATUS "Packaged version of GTest will be used.")
+else()
+    message(STATUS "Bundled version of GTest will be downloaded and used.")
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-v1.14.0
+        SOURCE_DIR ${CMAKE_SOURCE_DIR}/extern/gtest
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+    add_library(GTest::GTest INTERFACE IMPORTED)
+    target_link_libraries(GTest::GTest INTERFACE gtest_main)
+endif()
+
+# CTest
+enable_testing()
+include_directories(${GTEST_INCLUDE_DIRS})
+add_subdirectory(test)

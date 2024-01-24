@@ -20,8 +20,8 @@ void CPU::setFlag(FLAGS6502 f, bool v)
 }
 
 // BUS ACCESS
-uint8_t CPU::read(uint16_t addr) { return bus_->read(addr, false); }
-void CPU::write(uint16_t addr, uint8_t data) { bus_->write(addr, data); }
+uint8_t CPU::read(uint16_t addr) { return bus_->cpuRead(addr, false); }
+void CPU::write(uint16_t addr, uint8_t data) { bus_->cpuWrite(addr, data); }
 
 // EXTERNAL EVENT
 // CPU power up state: <https://www.nesdev.org/wiki/CPU_power_up_state#cite_note-2>
@@ -148,7 +148,7 @@ void CPU::disassemble(uint16_t addr_begin, uint16_t addr_end, ASMMap &asm_map)
         std::string instruction = fmt::format("${}: ", tn::Utils::numToHex(addr, 4));
 
         // read instruction
-        uint8_t opcode = bus_->read(addr, true);
+        uint8_t opcode = bus_->cpuRead(addr, true);
         addr += 1;
         instruction.append(lookup_table_[opcode].mnemonic);
         instruction.append(" ");
@@ -157,76 +157,76 @@ void CPU::disassemble(uint16_t addr_begin, uint16_t addr_end, ASMMap &asm_map)
             instruction.append(" {{IMP}}");
         }
         else if (lookup_table_[opcode].addrmode == &CPU::IMM) {
-            value = bus_->read(addr, true);
+            value = bus_->cpuRead(addr, true);
             addr += 1;
             instruction.append(fmt::format("#$00{} {{IMM}}", tn::Utils::numToHex(value, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ZP0) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
             hi = 0x00;
             instruction.append(fmt::format("${:02}{} {{ZP0}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ZPX) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
             hi = 0x00;
             instruction.append(fmt::format("${:02}{}, X {{ZPX}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ZPY) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
             hi = 0x00;
             instruction.append(
                 fmt::format("(${:02}{}), Y {{ZPY}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::IZX) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
             hi = 0x00;
             instruction.append(
                 fmt::format("(${:02}{}), X {{IZX}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::IZY) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
             hi = 0x00;
             instruction.append(fmt::format("${:02}{}, Y {{IZY}}", hi, tn::Utils::numToHex(lo, 2)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ABS) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
-            hi = bus_->read(addr, true);
+            hi = bus_->cpuRead(addr, true);
             addr += 1;
             instruction.append(fmt::format(
                 "${} {{ABS}}", tn::Utils::numToHex(static_cast<uint16_t>(hi << 8 | lo), 4)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ABX) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
-            hi = bus_->read(addr, true);
+            hi = bus_->cpuRead(addr, true);
             addr += 1;
             instruction.append(fmt::format(
                 "${}, X {{ABX}}", tn::Utils::numToHex(static_cast<uint16_t>(hi << 8 | lo), 4)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::ABY) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
-            hi = bus_->read(addr, true);
+            hi = bus_->cpuRead(addr, true);
             addr += 1;
             instruction.append(fmt::format(
                 "${}, Y {{ABY}}", tn::Utils::numToHex(static_cast<uint16_t>(hi << 8 | lo), 4)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::IND) {
-            lo = bus_->read(addr, true);
+            lo = bus_->cpuRead(addr, true);
             addr += 1;
-            hi = bus_->read(addr, true);
+            hi = bus_->cpuRead(addr, true);
             addr += 1;
             instruction.append(fmt::format(
                 "(${}) {{IND}}", tn::Utils::numToHex(static_cast<uint16_t>(hi << 8 | lo), 4)));
         }
         else if (lookup_table_[opcode].addrmode == &CPU::REL) {
-            value = bus_->read(addr, true);
+            value = bus_->cpuRead(addr, true);
             addr += 1;
             instruction.append(
                 fmt::format("${} [${}] {{REL}}", tn::Utils::numToHex(value, 2),
