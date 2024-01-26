@@ -16,13 +16,15 @@ void guiLogic(gui::GUI &gui)
                 gui.window().close();
             }
 
+            gui.window().clear(gui::ONE_DARK.dark);
+
             if (is_emulation_run) {
                 float elapsed = clock.restart().asSeconds();
                 if (residual_time > 0.0F) {
                     residual_time -= elapsed;
                 }
                 else {
-                    residual_time += (1.0F / 60.0F) - elapsed;
+                    residual_time += (1.0F / 60.0F);
                     do {
                         gui.nes()->clock();
                     }

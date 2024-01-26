@@ -28,7 +28,6 @@ void Bus::cpuWrite(uint64_t addr, uint8_t data)
         // PPU registers address range, mirrored every 8 bytes
         ppu_.cpuWrite(addr & 0x0007, data);
     }
-    // spdlog::warn("{}: RAM receives illegal address {:#04x}", __func__, addr);
 }
 
 uint8_t Bus::cpuRead(uint64_t addr, bool read_only /*unused*/)
@@ -46,9 +45,7 @@ uint8_t Bus::cpuRead(uint64_t addr, bool read_only /*unused*/)
     else if (addr >= 0x2000 && addr <= 0x3FFF) {
         data = ppu_.cpuRead(addr & 0x0007, read_only);
     }
-
-    // spdlog::warn("{}: RAM receives illegal address {:#04x}", __func__, addr);
-    return 0;
+    return data;
 }
 
 void Bus::insertCartridge(const std::shared_ptr<Cartridge> &cartridge)

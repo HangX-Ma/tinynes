@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.14)
 
 project(tinynes LANGUAGES CXX)
 
+if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
+message(FATAL_ERROR "In-source builds are not allowed")
+endif()
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
 endif()

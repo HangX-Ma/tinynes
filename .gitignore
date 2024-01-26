@@ -1,4 +1,10 @@
+# clang
 .cache
+# vscode
 .vscode
-build
+# third party library
 extern
+# cmake
+build
+**/CMakeFiles
+**/CMakeCache.txt
