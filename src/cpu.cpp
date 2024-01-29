@@ -732,10 +732,10 @@ uint8_t CPU::CMP()
 {
     fetch();
     temp_ = static_cast<uint16_t>(reg_.a) - static_cast<uint16_t>(fetched_);
-    setFlag(N, (temp_ & 0x80) != 0);
-    setFlag(Z, (temp_ & 0x00FF) == 0);
     // C is set if there is an unsigned overflow
     setFlag(C, reg_.a >= fetched_);
+    setFlag(Z, (temp_ & 0x00FF) == 0);
+    setFlag(N, (temp_ & 0x80) != 0);
 
     return 1;
 }
@@ -815,8 +815,8 @@ uint8_t CPU::EOR()
 {
     fetch();
     reg_.a = reg_.a ^ fetched_;
-    setFlag(N, (reg_.y & 0x80) != 0);
-    setFlag(Z, reg_.y == 0);
+    setFlag(N, (reg_.a & 0x80) != 0);
+    setFlag(Z, reg_.a == 0);
     return 1;
 }
 
@@ -1101,8 +1101,7 @@ uint8_t CPU::SBC()
     temp_ = static_cast<uint16_t>(reg_.a) + value + static_cast<uint16_t>(getFlag(C));
     setFlag(C, (temp_ & 0xFF00) != 0);
     setFlag(Z, ((temp_ & 0x00FF) == 0));
-    setFlag(V, (((static_cast<uint16_t>(reg_.a) & static_cast<uint16_t>(value)) ^ temp_) & 0x0080)
-                   != 0);
+    setFlag(V, ((temp_ ^ static_cast<uint16_t>(reg_.a)) & (value ^ temp_) & 0x0080) != 0);
     setFlag(N, (temp_ & 0x0080) != 0);
     reg_.a = temp_ & 0x00FF;
     return 1;
