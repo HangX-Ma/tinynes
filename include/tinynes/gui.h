@@ -294,6 +294,7 @@ public:
             spdlog::error("{} complains it cannot load {}", __func__, file_path);
             return;
         }
+        spdlog::info("load nes file: {}", file_path);
 
         nes_->insertCartridge(cart_);
         nes_->cpu().disassemble(0x0000, 0xFFFF, asm_map_);

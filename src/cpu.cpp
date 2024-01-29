@@ -57,7 +57,7 @@ void CPU::irq()
     // If interrupts are allowed
     if (getFlag(I)) {
         // push PCH on stack, decrement stack pointer
-        write(0x100 + reg_.st, (reg_.pc >> 8) & 0xFF00);
+        write(0x100 + reg_.st, (reg_.pc >> 8) & 0x00FF);
         reg_.st -= 1;
         // push PCL on stack, decrement stack pointer
         write(0x100 + reg_.st, reg_.pc & 0x00FF);
@@ -85,7 +85,7 @@ void CPU::irq()
 void CPU::nmi()
 {
     // push PCH on stack, decrement stack pointer
-    write(0x100 + reg_.st, (reg_.pc >> 8) & 0xFF00);
+    write(0x100 + reg_.st, (reg_.pc >> 8) & 0x00FF);
     reg_.st -= 1;
     // push PCL on stack, decrement stack pointer
     write(0x100 + reg_.st, reg_.pc & 0x00FF);
@@ -447,7 +447,7 @@ uint8_t CPU::fetch()
 // 1  1  0 | 1 |
 // 1  1  1 | 0 |
 //
-// V = A'M'R + AMR' -> V = (A & M) ^ R
+// V = A'M'R + AMR' -> V =  ~(A^M) & (A^R)
 uint8_t CPU::ADC()
 {
     // Grab the data that we are adding to the accumulator
@@ -460,9 +460,10 @@ uint8_t CPU::ADC()
     setFlag(C, temp_ > 0xFF);
     setFlag(N, (temp_ & 0x80) != 0);
     setFlag(Z, (temp_ & 0x00FF) == 0);
-    setFlag(V,
-            (((static_cast<uint16_t>(reg_.a) & static_cast<uint16_t>(fetched_)) ^ temp_) & 0x0080)
-                != 0);
+    setFlag(V, ((~(static_cast<uint16_t>(reg_.a) ^ static_cast<uint16_t>(fetched_))
+                 & (static_cast<uint16_t>(reg_.a) ^ temp_))
+                & 0x0080)
+                   != 0);
     reg_.a = temp_ & 0x00FF;
 
     // potentially require 'oops' cycle if page boundary crossed
@@ -871,7 +872,7 @@ uint8_t CPU::JMP()
 //                  (PC+2) -> PCH
 uint8_t CPU::JSR()
 {
-    reg_.pc += 1;
+    reg_.pc -= 1;
 
     write(0x0100 + reg_.st, (reg_.pc >> 8) & 0x00FF);
     reg_.st -= 1;
@@ -925,8 +926,8 @@ uint8_t CPU::LDY()
 uint8_t CPU::LSR()
 {
     fetch();
-    temp_ = fetched_ >> 1;
     setFlag(C, (fetched_ & 1) != 0);
+    temp_ = fetched_ >> 1;
     setFlag(Z, (temp_ & 0x00FF) == 0);
     setFlag(N, (temp_ & 0x80) != 0);
 

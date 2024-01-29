@@ -74,7 +74,7 @@ std::shared_ptr<VScreen> PPU::vScreenPatternTable(uint8_t idx, uint8_t palette)
                 uint8_t tile_msb = ppuRead(idx * 0x1000 + offset + row + 0x0008);
 
                 for (uint16_t col = 0; col < 8; col += 1) {
-                    uint8_t pixel = ((tile_msb & 0x01) << 1) | (tile_lsb & 0x01);
+                    uint8_t pixel = ((tile_lsb & 0x01) << 1) | (tile_msb & 0x01);
                     tile_lsb >>= 1;
                     tile_msb >>= 1;
 
@@ -379,6 +379,14 @@ void PPU::reset()
     control_.reg = 0x00;
     vram_addr_.reg = 0x0000;
     tram_addr_.reg = 0x0000;
+    bg_next_tile_.id = 0x00;
+    bg_next_tile_.attribute = 0x00;
+    bg_next_tile_.lsb = 0x00;
+    bg_next_tile_.msb = 0x00;
+    shifter_pattern_.lo = 0x0000;
+    shifter_pattern_.hi = 0x0000;
+    shifter_attribute_.lo = 0x0000;
+    shifter_attribute_.hi = 0x0000;
 }
 
 void PPU::clock()
@@ -396,6 +404,7 @@ void PPU::clock()
     {
         // Ony if rendering is enabled
         if (mask_.render_background || mask_.render_sprites) {
+            vram_addr_.fine_y = tram_addr_.fine_y;
             vram_addr_.nametable_y = tram_addr_.nametable_y;
             vram_addr_.coarse_y = tram_addr_.coarse_y;
         }
@@ -674,7 +683,7 @@ void PPU::clock()
         bg_palette = (bg_pal1 << 1) | bg_pal0;
     }
 
-    vscreen_main_->setPixel(cycle_ - 1, scan_line_ - 1,
+    vscreen_main_->setPixel(cycle_ - 1, scan_line_,
                             getColorFromPaletteMemory(bg_palette, bg_pixel));
 
     // snow noise

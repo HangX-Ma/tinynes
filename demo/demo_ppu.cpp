@@ -93,21 +93,21 @@ void guiLogic(gui::GUI &gui)
             gui.renderCPU();
             gui.renderCode();
 
-            // draw palette
-            gui.nes()->ppu().vScreenPatternTable(0, selected_palette)->update(sprite);
-            sprite.setPosition(wsize.x * 0.02, wsize.y * 0.78);
-            sprite.setScale(0.4, 0.4);
-            gui.window().draw(sprite);
-
-            gui.nes()->ppu().vScreenPatternTable(1, selected_palette)->update(sprite);
-            sprite.setPosition(wsize.x * 0.2, wsize.y * 0.78);
-            sprite.setScale(0.4, 0.4);
-            gui.window().draw(sprite);
-
             // draw main screen
             gui.nes()->ppu().vScreenMain()->update(sprite);
             sprite.setPosition(0, 0);
             sprite.setScale(1.5, 1.5);
+            gui.window().draw(sprite);
+
+            // draw palette
+            gui.nes()->ppu().vScreenPatternTable(0, selected_palette)->update(sprite);
+            sprite.setPosition(wsize.x * 0.02, wsize.y * 0.75);
+            sprite.setScale(0.5, 0.5);
+            gui.window().draw(sprite);
+
+            gui.nes()->ppu().vScreenPatternTable(1, selected_palette)->update(sprite);
+            sprite.setPosition(wsize.x * 0.3, wsize.y * 0.75);
+            sprite.setScale(0.5, 0.5);
             gui.window().draw(sprite);
 
             gui.window().display();

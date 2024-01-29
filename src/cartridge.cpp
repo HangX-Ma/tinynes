@@ -23,12 +23,9 @@ Cartridge::Cartridge(std::string_view filename)
 
         // assemble mapper id
         mapper_id_ = (header_.mapper2 & 0xF0) | (header_.mapper1 >> 4);
-        mirror = (header_.mapper1 & 0x01) ? VERTICAL : HORIZONTAL;
+        mirror = (header_.mapper1 & 0x01) != 0 ? VERTICAL : HORIZONTAL;
 
         INESFileFormat format = INESFileFormat::iNES1d0;
-        if ((header_.mapper2 & 0x0C) == 0x08) {
-            format = INESFileFormat::NES2d0;
-        }
 
         switch (format) {
         case INESFileFormat::iNES1d0:
@@ -63,8 +60,8 @@ Cartridge::Cartridge(std::string_view filename)
             break;
         }
         is_file_loaded_ = true;
+        ifs.close();
     }
-    // No need to call 'ifs.close()' because 'std::ifstream' has RAII design
 }
 
 bool Cartridge::cpuRead(uint16_t addr, uint8_t &data)
@@ -79,7 +76,7 @@ bool Cartridge::cpuRead(uint16_t addr, uint8_t &data)
 bool Cartridge::cpuWrite(uint16_t addr, uint8_t data)
 {
     uint32_t mapped_addr = 0;
-    if (mapper_->cpuMapWrite(addr, mapped_addr)) {
+    if (mapper_->cpuMapWrite(addr, mapped_addr, data)) {
         prg_mem_[mapped_addr] = data;
         return true;
     }
