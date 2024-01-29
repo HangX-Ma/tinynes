@@ -17,7 +17,8 @@ sudo apt-get install libsfml-dev
 ## Schedule
 
 - [x] _**STEP 1**_: Complete 6052 processor instruction set and adapt SFML graphic library
-- [ ] _**STEP 2**_: Add PPU(Picture Processing Unit) with other memory unit like ROM, Cartridge, etc
+- [x] _**STEP 2**_: Add PPU(Picture Processing Unit) with other memory unit like ROM, Cartridge, etc
+- [ ] _**STEP 3**_: Add APU(Audio Processing Unit)
 
 ## NES Emulator Concept
 
