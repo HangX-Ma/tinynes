@@ -21,6 +21,17 @@ public:
 
     bool isNesFileLoaded() { return is_file_loaded_; }
 
+    void reset();
+
+public:
+    enum MIRROR
+    {
+        HORIZONTAL,
+        VERTICAL,
+        ONESCREEN_LO,
+        ONESCREEN_HI,
+    } mirror = HORIZONTAL;
+
 private:
     /**
      * An NES cartridge has at least two memory chips on it: PRG (connected to the CPU) and CHR

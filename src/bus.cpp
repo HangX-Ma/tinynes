@@ -54,6 +54,14 @@ void Bus::insertCartridge(const std::shared_ptr<Cartridge> &cartridge)
     ppu_.connectCartridge(cartridge);
 }
 
+void Bus::reset()
+{
+    cart_->reset();
+    cpu_.reset();
+    ppu_.reset();
+    sys_clock_counter_ = 0;
+}
+
 void Bus::clock()
 {
 
@@ -63,13 +71,14 @@ void Bus::clock()
         cpu_.clock();
     }
 
-    sys_clock_counter_ += 1;
-}
+    // The PPU is capable of emitting an interrupt to indicate the
+    // vertical blanking period has been entered.
+    if (ppu_.nmi) {
+        ppu_.nmi = false;
+        cpu_.nmi();
+    }
 
-void Bus::reset()
-{
-    cpu_.reset();
-    sys_clock_counter_ = 0;
+    sys_clock_counter_ += 1;
 }
 
 } // namespace tn

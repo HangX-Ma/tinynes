@@ -23,6 +23,7 @@ Cartridge::Cartridge(std::string_view filename)
 
         // assemble mapper id
         mapper_id_ = (header_.mapper2 & 0xF0) | (header_.mapper1 >> 4);
+        mirror = (header_.mapper1 & 0x01) ? VERTICAL : HORIZONTAL;
 
         INESFileFormat format = INESFileFormat::iNES1d0;
         if ((header_.mapper2 & 0x0C) == 0x08) {
@@ -102,6 +103,15 @@ bool Cartridge::ppuWrite(uint16_t addr, uint8_t data)
         return true;
     }
     return false;
+}
+
+void Cartridge::reset()
+{
+    // Note: This does not reset the ROM contents,
+    // but does reset the mapper.
+    if (mapper_ != nullptr) {
+        mapper_->reset();
+    }
 }
 
 } // namespace tn

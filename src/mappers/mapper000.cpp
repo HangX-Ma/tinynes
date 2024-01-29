@@ -53,4 +53,6 @@ bool Mapper000::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr)
     return false;
 }
 
+void Mapper000::reset() {}
+
 } // namespace tn

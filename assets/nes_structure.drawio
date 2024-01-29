@@ -19,7 +19,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="5" value="2KB RAM" style="whiteSpace=wrap;html=1;fontFamily=Verdana;fontStyle=1;labelBackgroundColor=none;rounded=1;glass=0;shadow=0;fillColor=#f5f5f5;strokeColor=#FF3333;fillStyle=solid;fontColor=#333333;labelBorderColor=none;strokeWidth=2;" parent="1" vertex="1">
+                <mxCell id="5" value="&lt;font color=&quot;#990000&quot;&gt;2KB&lt;/font&gt; RAM" style="whiteSpace=wrap;html=1;fontFamily=Verdana;fontStyle=1;labelBackgroundColor=none;rounded=1;glass=0;shadow=0;fillColor=#f5f5f5;strokeColor=#FF3333;fillStyle=solid;fontColor=#333333;labelBorderColor=none;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="280" y="120" width="120" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="6" value="" style="edgeStyle=none;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Verdana;endArrow=none;endFill=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeColor=#FFFFFF;strokeWidth=2;" parent="1" source="5" edge="1">
@@ -74,10 +74,10 @@
                         <mxPoint x="390" y="441" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="25" value="8KB Pattern Table" style="whiteSpace=wrap;html=1;fontFamily=Verdana;fontStyle=1;labelBackgroundColor=none;rounded=1;glass=0;shadow=0;fillColor=#f5f5f5;strokeColor=#FF3333;fillStyle=solid;fontColor=#333333;labelBorderColor=none;strokeWidth=2;" parent="1" vertex="1">
+                <mxCell id="25" value="&lt;font color=&quot;#990000&quot;&gt;8KB&lt;/font&gt; Pattern Table" style="whiteSpace=wrap;html=1;fontFamily=Verdana;fontStyle=1;labelBackgroundColor=none;rounded=1;glass=0;shadow=0;fillColor=#f5f5f5;strokeColor=#FF3333;fillStyle=solid;fontColor=#333333;labelBorderColor=none;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="340" y="360" width="100" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="26" value="2KB Pattern Table" style="whiteSpace=wrap;html=1;fontFamily=Verdana;fontStyle=1;labelBackgroundColor=none;rounded=1;glass=0;shadow=0;fillColor=#f5f5f5;strokeColor=#FF3333;fillStyle=solid;fontColor=#333333;labelBorderColor=none;strokeWidth=2;" parent="1" vertex="1">
+                <mxCell id="26" value="&lt;font color=&quot;#990000&quot;&gt;2KB&lt;/font&gt; Name Table" style="whiteSpace=wrap;html=1;fontFamily=Verdana;fontStyle=1;labelBackgroundColor=none;rounded=1;glass=0;shadow=0;fillColor=#f5f5f5;strokeColor=#FF3333;fillStyle=solid;fontColor=#333333;labelBorderColor=none;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="460" y="360" width="100" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="27" value="Palettes" style="whiteSpace=wrap;html=1;fontFamily=Verdana;fontStyle=1;labelBackgroundColor=none;rounded=1;glass=0;shadow=0;fillColor=#f5f5f5;strokeColor=#FF3333;fillStyle=solid;fontColor=#333333;labelBorderColor=none;strokeWidth=2;" parent="1" vertex="1">
@@ -133,6 +133,9 @@
                 </mxCell>
                 <mxCell id="43" value="&lt;font face=&quot;Verdana&quot;&gt;&lt;span&gt;&lt;b&gt;&lt;i&gt;Extend&lt;/i&gt;&lt;/b&gt;&lt;/span&gt;&lt;/font&gt;" style="text;strokeColor=none;align=center;fillColor=none;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#E6E6E6;fontStyle=0;" parent="1" vertex="1">
                     <mxGeometry x="453" y="230" width="60" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="44" value="&lt;b&gt;&lt;i&gt;&lt;font style=&quot;&quot; face=&quot;Verdana&quot; color=&quot;#66b2ff&quot;&gt;VRAM&lt;/font&gt;&lt;/i&gt;&lt;/b&gt;" style="text;align=center;html=1;verticalAlign=middle;whiteSpace=wrap;rounded=0;labelBackgroundColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="508" y="400" width="60" height="30" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

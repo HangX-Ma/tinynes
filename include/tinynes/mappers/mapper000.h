@@ -29,6 +29,7 @@ public:
     bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr) override;
     bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr) override;
     bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr) override;
+    void reset() override;
 };
 
 } // namespace tn

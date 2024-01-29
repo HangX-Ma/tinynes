@@ -3,11 +3,14 @@
 
 static bool is_emulation_run{false};
 static float residual_time{0.0F};
+static int selected_palette{0};
 
 void guiLogic(gui::GUI &gui)
 {
     sf::Sprite sprite;
     sf::Clock clock;
+
+    sf::Vector2u wsize = gui.window().getSize();
 
     while (gui.window().isOpen()) {
         sf::Event event;
@@ -68,22 +71,43 @@ void guiLogic(gui::GUI &gui)
                 }
             }
 
+            // auto emulation
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
                 gui.waitKeyReleased(sf::Keyboard::Space);
                 is_emulation_run = !is_emulation_run;
             }
 
+            // reset
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
                 gui.waitKeyReleased(sf::Keyboard::R);
                 gui.nes()->reset();
             }
 
+            // palette selection
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
+                gui.waitKeyReleased(sf::Keyboard::P);
+                selected_palette += 1;
+                selected_palette &= 0x07;
+            }
+
             gui.renderCPU();
             gui.renderCode();
 
+            // draw palette
+            gui.nes()->ppu().vScreenPatternTable(0, selected_palette)->update(sprite);
+            sprite.setPosition(wsize.x * 0.02, wsize.y * 0.78);
+            sprite.setScale(0.4, 0.4);
+            gui.window().draw(sprite);
+
+            gui.nes()->ppu().vScreenPatternTable(1, selected_palette)->update(sprite);
+            sprite.setPosition(wsize.x * 0.2, wsize.y * 0.78);
+            sprite.setScale(0.4, 0.4);
+            gui.window().draw(sprite);
+
+            // draw main screen
             gui.nes()->ppu().vScreenMain()->update(sprite);
             sprite.setPosition(0, 0);
-            sprite.setScale(1.6, 1.6);
+            sprite.setScale(1.5, 1.5);
             gui.window().draw(sprite);
 
             gui.window().display();
@@ -98,8 +122,8 @@ int main()
     gui.init(680, 480, "TinyNES");
 
     sf::Vector2u wsize = gui.window().getSize();
-    gui.setCPUPosition(wsize.x * 0.7, wsize.y * 0.02);
-    gui.setCodePosition(wsize.x * 0.7, wsize.y * 0.25);
+    gui.setCPUPosition(wsize.x * 0.64, wsize.y * 0.02);
+    gui.setCodePosition(wsize.x * 0.64, wsize.y * 0.25);
     gui.loadCartridge();
 
     guiLogic(gui);

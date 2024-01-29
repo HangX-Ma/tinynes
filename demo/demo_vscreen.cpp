@@ -16,7 +16,7 @@ void genSnowNoise(uint32_t width, uint32_t height, tn::VScreen &vs)
     }
     for (uint32_t row = 0; row < width; row += 1) {
         for (uint32_t col = 0; col < height; col += 1) {
-            vs.setPixel(row, col, sf::Color(colors[(std::rand() % 2) != 0 ? 0x3F : 0x30]));
+            vs.setPixel(row, col, sf::Color(COLORS[(std::rand() % 2) != 0 ? 0x3F : 0x30]));
         }
     }
 }
