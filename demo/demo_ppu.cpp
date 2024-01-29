@@ -1,4 +1,5 @@
 #include "tinynes/gui.h"
+#include "tinynes/utils.h"
 #include "tinynes/vscreen.h"
 #include <SFML/Window/Keyboard.hpp>
 
@@ -10,7 +11,7 @@ void guiLogic(gui::GUI &gui)
     sf::Sprite sprite;
     sf::Clock clock;
 
-    sf::Vector2u wsize = gui.window().getSize();
+    [[maybe_unused]] sf::Vector2u wsize = gui.window().getSize();
 
     std::function<uint8_t(sf::Keyboard::Key, uint8_t, std::string_view)> checker_func
         = [&](auto key, auto val, std::string_view name) -> uint8_t
@@ -110,24 +111,25 @@ void guiLogic(gui::GUI &gui)
             }
 
             gui.renderCPU();
-            gui.renderCode();
+            gui.renderOAM();
 
             // draw main screen
             gui.nes()->ppu().vScreenMain()->update(sprite);
             sprite.setPosition(0, 0);
-            sprite.setScale(1.5, 1.5);
+            // sprite.setScale(1.5, 1.5);
+            sprite.setScale(1.65, 1.65);
             gui.window().draw(sprite);
 
             // draw palette
-            gui.nes()->ppu().vScreenPatternTable(0, selected_palette)->update(sprite);
-            sprite.setPosition(wsize.x * 0.02, wsize.y * 0.75);
-            sprite.setScale(0.5, 0.5);
-            gui.window().draw(sprite);
+            // gui.nes()->ppu().vScreenPatternTable(0, selected_palette)->update(sprite);
+            // sprite.setPosition(wsize.x * 0.02, wsize.y * 0.75);
+            // sprite.setScale(0.5, 0.5);
+            // gui.window().draw(sprite);
 
-            gui.nes()->ppu().vScreenPatternTable(1, selected_palette)->update(sprite);
-            sprite.setPosition(wsize.x * 0.3, wsize.y * 0.75);
-            sprite.setScale(0.5, 0.5);
-            gui.window().draw(sprite);
+            // gui.nes()->ppu().vScreenPatternTable(1, selected_palette)->update(sprite);
+            // sprite.setPosition(wsize.x * 0.3, wsize.y * 0.75);
+            // sprite.setScale(0.5, 0.5);
+            // gui.window().draw(sprite);
 
             gui.window().display();
         }
@@ -142,7 +144,7 @@ int main()
 
     sf::Vector2u wsize = gui.window().getSize();
     gui.setCPUPosition(wsize.x * 0.64, wsize.y * 0.02);
-    gui.setCodePosition(wsize.x * 0.64, wsize.y * 0.25);
+    gui.setOAMPosition(wsize.x * 0.64, wsize.y * 0.25);
     gui.loadCartridge();
 
     guiLogic(gui);

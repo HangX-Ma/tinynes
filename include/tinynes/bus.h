@@ -45,6 +45,20 @@ private:
 
     // record elapsed clock ticks
     uint64_t sys_clock_counter_{0};
+
+private:
+    uint8_t dma_page_{0x00};
+    uint8_t dma_addr_{0x00};
+    uint8_t dma_data_{0x00};
+
+    // DMA transfers need to be timed accurately. In principle it takes
+    // 512 cycles to read and write the 256 bytes of the OAM memory, a
+    // read followed by a write. However, the CPU needs to be on an "even"
+    // clock cycle, so a dummy cycle of idleness may be required
+    bool dma_dummy_{true};
+
+    //  flag to indicate that a DMA transfer is happening
+    bool dma_transfer_{false};
 };
 } // namespace tn
 

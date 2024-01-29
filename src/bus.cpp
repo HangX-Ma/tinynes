@@ -28,6 +28,12 @@ void Bus::cpuWrite(uint64_t addr, uint8_t data)
         // PPU registers address range, mirrored every 8 bytes
         ppu_.cpuWrite(addr & 0x0007, data);
     }
+    else if (addr == 0x4014) {
+        // A write to this address initiates a DMA transfer
+        dma_page_ = data;
+        dma_addr_ = 0x00;
+        dma_transfer_ = true;
+    }
     else if (addr >= 0x4016 && addr <= 0x4017) {
         controller_state_[addr & 0x0001] = controller_[addr & 0x0001];
     }
@@ -75,7 +81,37 @@ void Bus::clock()
     ppu_.clock();
 
     if (sys_clock_counter_ % 3 == 0) {
-        cpu_.clock();
+        // DMA start?
+        if (dma_transfer_) {
+            // wait until the next even CPU clock cycle before it starts
+            if (dma_dummy_) {
+                if (sys_clock_counter_ % 2 == 1) {
+                    dma_dummy_ = false;
+                }
+            }
+            else {
+                // DMA can take place!
+                if (sys_clock_counter_ % 2 == 0) {
+                    // On even clock cycles, read from CPU bus
+                    dma_data_ = cpuRead(dma_page_ << 8 | dma_addr_);
+                }
+                else {
+                    // On odd clock cycles, write to PPU OAM
+                    ppu_.oam()[dma_addr_] = dma_data_;
+                    dma_addr_ += 1;
+                    // If this wraps around, we know that 256 bytes have been written, so end the
+                    // DMA transfer, and proceed as normal
+                    if (dma_addr_ == 0x00) {
+                        dma_transfer_ = false;
+                        dma_dummy_ = true;
+                    }
+                }
+            }
+        }
+        else {
+            // No DMA happening, the CPU is in control of its own destiny.
+            cpu_.clock();
+        }
     }
 
     // The PPU is capable of emitting an interrupt to indicate the

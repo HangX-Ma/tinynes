@@ -31,6 +31,7 @@ public:
     auto vScreenMain() { return vscreen_main_; }
     auto vScreenNameTable(uint8_t idx) { return vscreen_name_table_[idx]; }
     std::shared_ptr<VScreen> vScreenPatternTable(uint8_t idx, uint8_t palette);
+    auto oam() { return oam_ptr_; }
 
     bool getFrameState() { return frame_complete_; }
     void setFrameState(bool status) { frame_complete_ = status; }
@@ -48,7 +49,7 @@ private:
 private:
     std::shared_ptr<Cartridge> cart_;
     bool frame_complete_{false};
-    int32_t scan_line_{0};
+    int32_t scanline_{0};
     int32_t cycle_{0};
 
     // <https://www.nesdev.org/wiki/PPU_registers#PPUCTRL>
@@ -180,8 +181,8 @@ private:
         uint16_t lo{0x0000};
         uint16_t hi{0x0000};
     };
-    BGShifter shifter_pattern_;
-    BGShifter shifter_attribute_;
+    BGShifter bg_shifter_pattern_;
+    BGShifter bg_shifter_attribute_;
 
 private:
     std::shared_ptr<VScreen> vscreen_main_{nullptr};
@@ -216,6 +217,63 @@ private:
 
     /* palette colors */
     uint8_t palette_table_[32];
+
+    // https://www.nesdev.org/wiki/PPU_OAM
+    // Byte 0: Y position of top of sprite
+    // Byte 1: Tile index number
+    //   - For 8x8 sprites, this is the tile number of this sprite within the pattern table selected
+    //   in bit 3 of PPUCTRL ($2000).
+    //   - For 8x16 sprites (bit 5 of PPUCTRL set), the PPU ignores the pattern table selection and
+    //   selects a pattern table from bit 0 of this number.
+    //
+    //   76543210
+    //   ||||||||
+    //   |||||||+- Bank ($0000 or $1000) of tiles
+    //   +++++++-- Tile number of top of sprite (0 to 254; bottom half gets the next tile)
+    // Byte 2: Attribute
+    //
+    //   76543210
+    //   ||||||||
+    //   ||||||++- Palette (4 to 7) of sprite
+    //   |||+++--- Unimplemented (read 0)
+    //   ||+------ Priority (0: in front of background; 1: behind background)
+    //   |+------- Flip sprite horizontally
+    //   +-------- Flip sprite vertically
+    // Byte 3: X position of left side of sprite.
+    struct ObjectAttributeEntry
+    {
+        uint8_t y;         // Y position of sprite
+        uint8_t id;        // ID of tile from pattern memory
+        uint8_t attribute; // Flags define how sprite should be rendered
+        uint8_t x;         // X position of sprite
+    } OAM_[64];
+    uint8_t *oam_ptr_ = reinterpret_cast<uint8_t *>(OAM_);
+
+    // A register to store the address when the CPU manually communicates
+    // with OAM via PPU registers. This is not commonly used because it
+    // is very slow, and instead a 256-Byte DMA transfer is used. See
+    // the Bus header for a description of this.
+    uint8_t oam_addr_{0x00};
+
+    // NES Dev wiki - Sprite overflow games: <https://www.nesdev.org/wiki/Sprite_overflow_games>
+    //
+    // The sprite overflow flag is rarely used, mainly due to bugs when exactly 8 sprites are
+    // present on a scanline. No games rely on the buggy behavior.
+    //
+    // Nonetheless, games can intentionally place 9 or more sprites in a scanline to trigger the
+    // overflow flag consistently, as long as no previous scanlines have exactly 8 sprites.
+    ObjectAttributeEntry sprite_per_scanline_[8];
+    uint8_t sprite_count_;
+    uint8_t sprite_shifter_pattern_lo_[8];
+    uint8_t sprite_shifter_pattern_hi_[8];
+
+    // NES Dev wiki - PPU OAM: < https : // www.nesdev.org/wiki/PPU_OAM#Sprite_0_hits>
+    //  Sprite Zero Collision Flags
+    bool sprite_zero_hit_possible_ = false;
+    bool sprite_zero_being_rendered_ = false;
+
+    // The OAM is conveniently package above to work with, but the DMA
+    // mechanism will need access to it for writing one byte at a time
 };
 
 } // namespace tn

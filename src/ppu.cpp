@@ -3,6 +3,7 @@
 #include "tinynes/palette_color.h"
 #include "tinynes/vscreen.h"
 
+#include <cstring>
 #include <memory>
 
 namespace tn
@@ -135,6 +136,7 @@ uint8_t PPU::cpuRead(uint16_t addr, [[maybe_unused]] bool read_only)
         case 0x0003: // OAMADDR - Unused
             break;
         case 0x0004: // OAMDATA - Unused
+            data = oam_ptr_[oam_addr_];
             break;
         case 0x0005: // PPUSCROLL - Not readable
             break;
@@ -177,8 +179,10 @@ void PPU::cpuWrite(uint16_t addr, uint8_t data)
     case 0x0002: // PPUSTATUS
         break;
     case 0x0003: // OAMADDR
+        oam_addr_ = data;
         break;
     case 0x0004: // OAMDATA
+        oam_ptr_[oam_addr_] = data;
         break;
     // <https://www.nesdev.org/wiki/PPU_registers#PPUSCROLL>
     // PPUSCROLL takes two writes: the first is the X scroll and the second is the Y scroll. Whether
@@ -372,7 +376,7 @@ void PPU::reset()
     fine_x_ = 0x00;
     address_latch_ = 0x00;
     data_buffer_ = 0x00;
-    scan_line_ = 0;
+    scanline_ = 0;
     cycle_ = 0;
     status_.reg = 0x00;
     mask_.reg = 0x00;
@@ -383,10 +387,10 @@ void PPU::reset()
     bg_next_tile_.attribute = 0x00;
     bg_next_tile_.lsb = 0x00;
     bg_next_tile_.msb = 0x00;
-    shifter_pattern_.lo = 0x0000;
-    shifter_pattern_.hi = 0x0000;
-    shifter_attribute_.lo = 0x0000;
-    shifter_attribute_.hi = 0x0000;
+    bg_shifter_pattern_.lo = 0x0000;
+    bg_shifter_pattern_.hi = 0x0000;
+    bg_shifter_attribute_.lo = 0x0000;
+    bg_shifter_attribute_.hi = 0x0000;
 }
 
 void PPU::clock()
@@ -462,18 +466,18 @@ void PPU::clock()
         // Each PPU cycle update we calculate one pixel.
         // Shifter is 16 bits wide, because the top 8 bits are the current 8 pixels being
         // drawn and the bottom 8 bits are the next 8 pixels to be drawn.
-        shifter_pattern_.lo = (shifter_pattern_.lo & 0xFF00) | bg_next_tile_.lsb;
-        shifter_pattern_.hi = (shifter_pattern_.hi & 0xFF00) | bg_next_tile_.msb;
+        bg_shifter_pattern_.lo = (bg_shifter_pattern_.lo & 0xFF00) | bg_next_tile_.lsb;
+        bg_shifter_pattern_.hi = (bg_shifter_pattern_.hi & 0xFF00) | bg_next_tile_.msb;
 
         // Attribute bits do not change per pixel, rather they change every 8 pixels
         // but are synchronized with the pattern shifters for convenience, so here
         // we take the bottom 2 bits of the attribute word which represent which
         // palette is being used for the current 8 pixels and the next 8 pixels, and
         // "inflate" them to 8 bit words.
-        shifter_attribute_.lo = (shifter_attribute_.lo & 0xFF00)
-                                | ((bg_next_tile_.attribute & 0b01) != 0 ? 0xFF : 0x00);
-        shifter_attribute_.hi = (shifter_attribute_.hi & 0xFF00)
-                                | ((bg_next_tile_.attribute & 0b10) != 0 ? 0xFF : 0x00);
+        bg_shifter_attribute_.lo = (bg_shifter_attribute_.lo & 0xFF00)
+                                   | ((bg_next_tile_.attribute & 0b01) != 0 ? 0xFF : 0x00);
+        bg_shifter_attribute_.hi = (bg_shifter_attribute_.hi & 0xFF00)
+                                   | ((bg_next_tile_.attribute & 0b10) != 0 ? 0xFF : 0x00);
     };
 
     // Every cycle the shifters storing pattern and attribute information shift
@@ -482,12 +486,24 @@ void PPU::clock()
     {
         if (mask_.render_background) {
             // Shifting background tile pattern row
-            shifter_pattern_.lo <<= 1;
-            shifter_pattern_.hi <<= 1;
+            bg_shifter_pattern_.lo <<= 1;
+            bg_shifter_pattern_.hi <<= 1;
 
             // Shifting palette attributes 1
-            shifter_attribute_.lo <<= 1;
-            shifter_attribute_.hi <<= 1;
+            bg_shifter_attribute_.lo <<= 1;
+            bg_shifter_attribute_.hi <<= 1;
+        }
+
+        if (mask_.render_sprites && cycle_ >= 1 && cycle_ < 258) {
+            for (int i = 0; i < sprite_count_; i++) {
+                if (sprite_per_scanline_[i].x > 0) {
+                    sprite_per_scanline_[i].x -= 1;
+                }
+                else {
+                    sprite_shifter_pattern_lo_[i] <<= 1;
+                    sprite_shifter_pattern_hi_[i] <<= 1;
+                }
+            }
         }
     };
 
@@ -512,17 +528,27 @@ void PPU::clock()
     //
     // Please check <https://www.nesdev.org/w/images/default/4/4f/Ppu.svg> !!!
 
-    if (scan_line_ >= -1 && scan_line_ < 240) {
+    if (scanline_ >= -1 && scanline_ < 240) {
+        //= Background Rendering
         // For odd frames, the cycle at the end of the scanline is skipped
-        if (scan_line_ == 0 && cycle_ == 0) {
+        if (scanline_ == 0 && cycle_ == 0) {
             // replacing the idle tick at the beginning of the first visible scanline with the last
             // tick of the last dummy nametable fetch
             cycle_ = 1;
         }
         // For even frames, the last cycle occurs normally.
-        if (scan_line_ == -1 && cycle_ == 1) {
+        if (scanline_ == -1 && cycle_ == 1) {
             // start the new frame by clearing vertical blank flag
             status_.vertical_blank = 0;
+            // Clear sprite overflow flag
+            status_.sprite_overflow = 0;
+            // Clear the sprite zero hit flag
+            status_.sprite_zero_hit = 0;
+            // Clear Shifters
+            for (int i = 0; i < 8; i++) {
+                sprite_shifter_pattern_lo_[i] = 0;
+                sprite_shifter_pattern_hi_[i] = 0;
+            }
         }
 
         // tile fetch
@@ -641,19 +667,145 @@ void PPU::clock()
         }
 
         // reset y position
-        if (scan_line_ == -1 && cycle_ >= 280 && cycle_ < 305) {
+        if (scanline_ == -1 && cycle_ >= 280 && cycle_ < 305) {
             transfer_address_y_func();
+        }
+
+        //= Foreground Rendering
+        // Sprite evaluation for next scanline
+        if (cycle_ == 257 && scanline_ >= 0) {
+            // Hide a sprite by moving it down offscreen, by writing any values between #$EF-#$FF
+            std::memset(sprite_per_scanline_, 0xFF, 8 * sizeof(ObjectAttributeEntry));
+            // The NES supports a maximum number of sprites per scanline. Nominally
+            // this is 8 or fewer sprites.
+            sprite_count_ = 0;
+
+            // clear out any residual information in sprite pattern shifters
+            for (uint8_t i = 0; i < 8; i++) {
+                sprite_shifter_pattern_lo_[i] = 0;
+                sprite_shifter_pattern_hi_[i] = 0;
+            }
+
+            uint8_t n_oam_entry = 0;
+            while (n_oam_entry < 64 && sprite_count_ < 9) {
+                int16_t diff
+                    = (static_cast<int16_t>(scanline_) - static_cast<int16_t>(OAM_[n_oam_entry].y));
+
+                if (diff >= 0 && diff < (control_.sprite_size ? 16 : 8)) {
+                    if (sprite_count_ < 8) {
+                        // Is this sprite sprite zero?
+                        if (n_oam_entry == 0) {
+                            sprite_zero_hit_possible_ = true;
+                        }
+
+                        memcpy(&sprite_per_scanline_[sprite_count_], &OAM_[n_oam_entry],
+                               sizeof(ObjectAttributeEntry));
+                        sprite_count_ += 1;
+                    }
+                }
+                n_oam_entry += 1;
+            } // End of sprite evaluation for next scanline
+
+            // Set sprite overflow flag
+            status_.sprite_overflow = (sprite_count_ > 8);
+        }
+
+        // one scanline end
+        if (cycle_ == 340) {
+            // now we need to prepare the sprite shifter with selected sprites
+            for (uint8_t i = 0; i < sprite_count_; i++) {
+                uint8_t sprite_pattern_bits_lo;
+                uint8_t sprite_pattern_bits_hi;
+                uint16_t sprite_pattern_addr_lo;
+                uint16_t sprite_pattern_addr_hi;
+
+                // 8x8 Sprite Mode - The control register determines the pattern table
+                if (!control_.sprite_size) {
+                    // normal, no vertical flip
+                    if ((sprite_per_scanline_[i].attribute & 0x80) == 0) {
+                        sprite_pattern_addr_lo
+                            = (control_.sprite_pattern_table_addr << 12) // pattern table
+                              | (sprite_per_scanline_[i].id << 4)        // tile id * 16 bytes
+                              | (scanline_ - sprite_per_scanline_[i].y); // row in cell?(0~7)
+                    }
+                    // flip vertically, upside down
+                    else {
+                        sprite_pattern_addr_lo = (control_.sprite_pattern_table_addr << 12)
+                                                 | (sprite_per_scanline_[i].id << 4)
+                                                 | (7 - (scanline_ - sprite_per_scanline_[i].y));
+                    }
+                }
+                // 8x16 Sprite Mode - The sprite attribute determines the pattern table
+                else {
+                    // normal
+                    if ((sprite_per_scanline_[i].attribute & 0x80) == 0) {
+                        // top half tile
+                        if (scanline_ - sprite_per_scanline_[i].y < 8) {
+                            sprite_pattern_addr_lo
+                                = ((sprite_per_scanline_[i].id & 0x01) << 12) // pattern table
+                                  | ((sprite_per_scanline_[i].id & 0xFE) << 4)
+                                  | ((scanline_ - sprite_per_scanline_[i].y) & 0x07);
+                        }
+                        // bottom half tile
+                        else {
+                            sprite_pattern_addr_lo
+                                = ((sprite_per_scanline_[i].id & 0x01) << 12) // pattern table
+                                  | (((sprite_per_scanline_[i].id & 0xFE) + 1) << 4)
+                                  | ((scanline_ - sprite_per_scanline_[i].y) & 0x07);
+                        }
+                    }
+                    // flip vertically
+                    else {
+                        // top half tile
+                        if (scanline_ - sprite_per_scanline_[i].y < 8) {
+                            sprite_pattern_addr_lo
+                                = ((sprite_per_scanline_[i].id & 0x01) << 12) // pattern table
+                                  | ((sprite_per_scanline_[i].id & 0xFE) << 4)
+                                  | (7 - (scanline_ - sprite_per_scanline_[i].y) & 0x07);
+                        }
+                        // bottom half tile
+                        else {
+                            sprite_pattern_addr_lo
+                                = ((sprite_per_scanline_[i].id & 0x01) << 12) // pattern table
+                                  | (((sprite_per_scanline_[i].id & 0xFE) + 1) << 4)
+                                  | (7 - (scanline_ - sprite_per_scanline_[i].y) & 0x07);
+                        }
+                    }
+                }
+                // High bit plane equivalent is always offset by 8 bytes from lo bit plane
+                sprite_pattern_addr_hi = sprite_pattern_addr_lo + 8;
+
+                sprite_pattern_bits_lo = ppuRead(sprite_pattern_addr_lo);
+                sprite_pattern_bits_hi = ppuRead(sprite_pattern_addr_hi);
+
+                // If the sprite is flipped horizontally, we need to flip the
+                // pattern bytes.
+                if ((sprite_per_scanline_[i].attribute & 0x40) != 0) {
+                    // https://stackoverflow.com/a/2602885
+                    auto flip_byte = [](uint8_t b)
+                    {
+                        b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+                        b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+                        b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+                        return b;
+                    };
+                    sprite_pattern_bits_lo = flip_byte(sprite_pattern_bits_lo);
+                    sprite_pattern_bits_hi = flip_byte(sprite_pattern_bits_hi);
+                }
+                sprite_shifter_pattern_lo_[i] = sprite_pattern_bits_lo;
+                sprite_shifter_pattern_hi_[i] = sprite_pattern_bits_hi;
+            }
         }
     }
 
     // Post-render scanline
-    if (scan_line_ == 240) {
+    if (scanline_ == 240) {
         ; // idle
     }
 
     // Vertical blanking lines
-    if (scan_line_ >= 241 && scan_line_ < 261) {
-        if (scan_line_ == 241 && cycle_ == 1) {
+    if (scanline_ >= 241 && scanline_ < 261) {
+        if (scanline_ == 241 && cycle_ == 1) {
             status_.vertical_blank = 1;
             if (control_.enable_nmi) {
                 nmi = true;
@@ -664,39 +816,114 @@ void PPU::clock()
     // Composition - We now have background pixel information for this cycle
     // At this point we are only interested in background
 
+    //= Background
     uint8_t bg_pixel = 0x00;   // The 2-bit pixel index
-    uint8_t bg_palette = 0x00; // The 3-bit index palette index
-
+    uint8_t bg_palette = 0x00; // The 3-bit palette index
     if (mask_.render_background) {
         uint16_t bit_mux = 0x8000 >> fine_x_;
 
         // Select Plane pixels by extracting from the shifter
         // at the required location.
-        auto p0_pixel = static_cast<uint8_t>((shifter_pattern_.lo & bit_mux) > 0);
-        auto p1_pixel = static_cast<uint8_t>((shifter_pattern_.hi & bit_mux) > 0);
+        auto p0_pixel = static_cast<uint8_t>((bg_shifter_pattern_.lo & bit_mux) > 0);
+        auto p1_pixel = static_cast<uint8_t>((bg_shifter_pattern_.hi & bit_mux) > 0);
 
         // Combine to form pixel index
         bg_pixel = (p1_pixel << 1) | p0_pixel;
         // Get palette
-        auto bg_pal0 = static_cast<uint8_t>((shifter_attribute_.lo & bit_mux) > 0);
-        auto bg_pal1 = static_cast<uint8_t>((shifter_attribute_.hi & bit_mux) > 0);
+        auto bg_pal0 = static_cast<uint8_t>((bg_shifter_attribute_.lo & bit_mux) > 0);
+        auto bg_pal1 = static_cast<uint8_t>((bg_shifter_attribute_.hi & bit_mux) > 0);
         bg_palette = (bg_pal1 << 1) | bg_pal0;
     }
 
-    vscreen_main_->setPixel(cycle_ - 1, scan_line_,
-                            getColorFromPaletteMemory(bg_palette, bg_pixel));
+    //= Foreground
+    uint8_t fg_pixel = 0x00;    // The 2-bit pixel index
+    uint8_t fg_palette = 0x00;  // The 3-bit palette index
+    uint8_t fg_priority = 0x00; // A bit of the sprite attribute indicates if its
+                                // more important than the background
+    if (mask_.render_sprites) {
+        sprite_zero_being_rendered_ = false;
 
-    // snow noise
-    // vscreen_main_->setPixel(cycle_, scan_line_ - 1, sf::Color(COLORS[(rand() % 2) != 0 ? 0x3F :
-    // 0x30]));
+        for (uint8_t i = 0; i < sprite_count_; i++) {
+            // scanline cycle has "collided" with sprite, shifters taking over
+            if (sprite_per_scanline_[i].x == 0) {
+                auto fg_pixel_lo = static_cast<uint8_t>((sprite_shifter_pattern_lo_[i] & 0x80) > 0);
+                auto fg_pixel_hi = static_cast<uint8_t>((sprite_shifter_pattern_hi_[i] & 0x80) > 0);
+                fg_pixel = (fg_pixel_hi << 1) | fg_pixel_lo;
+
+                fg_palette = (sprite_per_scanline_[i].attribute & 0x03) + 0x04;
+                fg_priority = static_cast<uint8_t>((sprite_per_scanline_[i].attribute & 0x20) == 0);
+
+                // rendering non-transparent pixel
+                if (fg_pixel != 0) {
+                    // Is this sprite zero?
+                    if (i == 0) {
+                        sprite_zero_being_rendered_ = true;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    // Now we have a background pixel and a foreground pixel. They need
+    // to be combined.
+
+    uint8_t pixel = 0x00;
+    uint8_t palette = 0x00;
+
+    // both bg and fg are transparent
+    if (bg_pixel == 0 && fg_pixel == 0) {
+        pixel = 0;
+        palette = 0;
+    }
+
+    else if (bg_pixel != 0 && fg_pixel == 0) {
+        pixel = bg_pixel;
+        palette = bg_palette;
+    }
+    else if (bg_pixel == 0 && fg_pixel != 0) {
+        pixel = fg_pixel;
+        palette = fg_palette;
+    }
+    else {
+        if (fg_priority != 0U) {
+            pixel = fg_pixel;
+            palette = fg_palette;
+        }
+        else {
+            pixel = bg_pixel;
+            palette = bg_palette;
+        }
+
+        // Sprite Zero Hit detection
+        if (sprite_zero_hit_possible_ && sprite_zero_being_rendered_) {
+            if ((mask_.render_background & mask_.render_sprites) != 0) {
+                // The left edge of the screen has specific switches to control
+                // its appearance. This is used to smooth inconsistencies when
+                // scrolling (since sprites x coord must be >= 0)
+                if ((~(mask_.render_background_left | mask_.render_sprites_left)) != 0) {
+                    if (cycle_ >= 9 && cycle_ < 258) {
+                        status_.sprite_zero_hit = 1;
+                    }
+                }
+                else {
+                    if (cycle_ >= 1 && cycle_ < 258) {
+                        status_.sprite_zero_hit = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    vscreen_main_->setPixel(cycle_ - 1, scanline_, getColorFromPaletteMemory(palette, pixel));
 
     // advance rendering
     cycle_ += 1;
     if (cycle_ >= 341) {
         cycle_ = 0;
-        scan_line_ += 1;
-        if (scan_line_ >= 261) {
-            scan_line_ = -1;
+        scanline_ += 1;
+        if (scanline_ >= 261) {
+            scanline_ = -1;
             frame_complete_ = true;
         }
     }

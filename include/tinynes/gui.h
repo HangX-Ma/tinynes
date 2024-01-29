@@ -247,6 +247,36 @@ private:
     sf::Font font_;
 };
 
+class OAM
+{
+public:
+    OAM()
+    {
+        if (!font_.loadFromFile("assets/UbuntuMono-Regular.ttf")) {
+            spdlog::error("GUI-RAM load font failed!");
+        }
+    }
+    void update(int x, int y, int line_num, sf::Vector2u wsize, const std::unique_ptr<tn::Bus> &nes,
+                sf::RenderWindow &window)
+    {
+        int vspace = wsize.y * 0.03;
+        for (int i = 0; i < line_num; i++) {
+            std::string s = fmt::format("{}: ({}, {}) ID: {} AT: {}", tn::Utils::numToHex(i, 2),
+                                        std::to_string(nes->ppu().oam()[i * 4 + 3]),
+                                        std::to_string(nes->ppu().oam()[i * 4 + 0]),
+                                        tn::Utils::numToHex(nes->ppu().oam()[i * 4 + 1], 2),
+                                        tn::Utils::numToHex(nes->ppu().oam()[i * 4 + 2], 2));
+
+            GUIUtils::setString(x, y + i * vspace, s, sf::Color::White, content_, font_);
+            window.draw(content_);
+        }
+    }
+
+private:
+    sf::Text content_;
+    sf::Font font_;
+};
+
 class GUI
 {
 public:
@@ -288,7 +318,8 @@ public:
 
     void loadCartridge()
     {
-        std::string file_path = ROOT_DIR + "/test/nesfiles/nestest.nes";
+        // std::string file_path = ROOT_DIR + "/test/nesfiles/nestest.nes";
+        std::string file_path = ROOT_DIR + "/test/nesfiles/donkey_kong.nes";
         cart_ = std::make_shared<tn::Cartridge>(file_path);
         if (!cart_->isNesFileLoaded()) {
             spdlog::error("{} complains it cannot load {}", __func__, file_path);
@@ -305,9 +336,11 @@ public:
     void setRAMTopPosition(uint x, uint y) { module_pos_.ram_top = {x, y}; }
     void setRAMBottomPosition(uint x, uint y) { module_pos_.ram_bottom = {x, y}; }
     void setCodePosition(uint x, uint y) { module_pos_.code = {x, y}; }
+    void setOAMPosition(uint x, uint y) { module_pos_.oam = {x, y}; }
 
     auto &window() { return window_; }
     auto &nes() { return nes_; }
+    auto &defaultFont() { return default_font_; }
 
     void waitKeyReleased(sf::Keyboard::Key key)
     {
@@ -334,6 +367,11 @@ public:
     {
         gui_code_.update(module_pos_.code.x, module_pos_.code.y, code_line_, window_.getSize(),
                          asm_map_, nes_, window_);
+    }
+
+    void renderOAM()
+    {
+        gui_oam_.update(module_pos_.oam.x, module_pos_.oam.y, 20, window_.getSize(), nes_, window_);
     }
 
     void renderInfo()
@@ -376,11 +414,13 @@ private:
         sf::Vector2u ram_top;
         sf::Vector2u ram_bottom;
         sf::Vector2u code;
+        sf::Vector2u oam;
     } module_pos_;
 
     gui::CPU gui_cpu_;
     gui::RAM gui_ram_;
     gui::Code gui_code_;
+    gui::OAM gui_oam_;
     uint8_t code_line_{18};
 
     sf::Font default_font_;
