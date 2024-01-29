@@ -28,6 +28,9 @@ void Bus::cpuWrite(uint64_t addr, uint8_t data)
         // PPU registers address range, mirrored every 8 bytes
         ppu_.cpuWrite(addr & 0x0007, data);
     }
+    else if (addr >= 0x4016 && addr <= 0x4017) {
+        controller_state_[addr & 0x0001] = controller_[addr & 0x0001];
+    }
 }
 
 uint8_t Bus::cpuRead(uint64_t addr, bool read_only /*unused*/)
@@ -44,6 +47,10 @@ uint8_t Bus::cpuRead(uint64_t addr, bool read_only /*unused*/)
     // PPU registers address range, mirrored every 8 bytes
     else if (addr >= 0x2000 && addr <= 0x3FFF) {
         data = ppu_.cpuRead(addr & 0x0007, read_only);
+    }
+    else if (addr >= 0x4016 && addr <= 0x4017) {
+        data = static_cast<uint8_t>((controller_state_[addr & 0x0001] & 0x80) > 0);
+        controller_state_[addr & 0x0001] <<= 1;
     }
     return data;
 }

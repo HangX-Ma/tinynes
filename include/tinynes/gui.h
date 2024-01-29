@@ -288,13 +288,13 @@ public:
 
     void loadCartridge()
     {
-        std::string file_path = ROOT_DIR + "/test/nesfiles/donkey_kong.nes";
+        std::string file_path = ROOT_DIR + "/test/nesfiles/nestest.nes";
         cart_ = std::make_shared<tn::Cartridge>(file_path);
         if (!cart_->isNesFileLoaded()) {
             spdlog::error("{} complains it cannot load {}", __func__, file_path);
             return;
         }
-        spdlog::info("load nes file: {}", file_path);
+        spdlog::info("Cartridge load nes file: {}", file_path);
 
         nes_->insertCartridge(cart_);
         nes_->cpu().disassemble(0x0000, 0xFFFF, asm_map_);
@@ -312,6 +312,7 @@ public:
     void waitKeyReleased(sf::Keyboard::Key key)
     {
         while (sf::Keyboard::isKeyPressed(key)) {
+            ;
         }
     }
 
