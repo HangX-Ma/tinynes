@@ -288,7 +288,7 @@ public:
 
     void loadCartridge()
     {
-        std::string file_path = ROOT_DIR + "/test/nesfiles/nestest.nes";
+        std::string file_path = ROOT_DIR + "/test/nesfiles/donkey_kong.nes";
         cart_ = std::make_shared<tn::Cartridge>(file_path);
         if (!cart_->isNesFileLoaded()) {
             spdlog::error("{} complains it cannot load {}", __func__, file_path);
