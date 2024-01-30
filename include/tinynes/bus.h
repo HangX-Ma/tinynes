@@ -6,6 +6,7 @@
 
 #include "tinynes/cpu.h"
 #include "tinynes/ppu.h"
+#include "tinynes/apu.h"
 #include "tinynes/cartridge.h"
 
 namespace tn
@@ -23,20 +24,35 @@ public:
 public:
     // system interfaces
     void insertCartridge(const std::shared_ptr<Cartridge> &cartridge);
-    void clock();
+    bool clock(); // return if sound thread generates a new value
     void reset();
 
 public:
     // access device on the bus
     CPU &cpu() { return cpu_; }
     PPU &ppu() { return ppu_; }
+    APU &apu() { return apu_; }
     auto &cpuRAM() { return cpu_ram_; }
     auto cartridge() { return cart_; }
     auto &controller() { return controller_; }
 
+    // APU
+    void setAudioSampleFrequency(uint32_t sample_rate);
+    double getAudioSample() { return audio_sample_; }
+    void setAudioSample(double val) { audio_sample_ = val; }
+
+private:
+    // accumulated audio sample time between two system sample time
+    double audio_time_{0.0};
+    // output audio sample value
+    double audio_sample_{0.0};
+    double audio_time_in_sys_sample_{0.0};
+    double audio_time_in_nes_clock_{0.0};
+
 private:
     CPU cpu_; // 6052 CPU
     PPU ppu_; // 2C02 PPU
+    APU apu_; // 2A03 APU
     std::array<uint8_t, 2048> cpu_ram_;
     std::shared_ptr<Cartridge> cart_;
     // controller

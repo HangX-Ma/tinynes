@@ -20,3 +20,6 @@ target_link_libraries(demo_sound2 PRIVATE ${SFML_LIBRARIES} ${SFML_DEPENDENCIES}
 
 add_executable(demo_vscreen demo_vscreen.cpp)
 target_link_libraries(demo_vscreen PRIVATE tinynes)
+
+add_executable(demo_tinynes demo_tinynes.cpp)
+target_link_libraries(demo_tinynes PRIVATE tinynes)

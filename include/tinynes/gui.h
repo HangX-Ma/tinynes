@@ -161,8 +161,8 @@ public:
         }
     }
 
-    void update(int x, int y, sf::Vector2u wsize, std::unique_ptr<tn::Bus> &nes, uint16_t addr,
-                int row_num, int col_num, sf::RenderWindow &window)
+    void update(int x, int y, sf::Vector2u wsize, const std::shared_ptr<tn::Bus> &nes,
+                uint16_t addr, int row_num, int col_num, sf::RenderWindow &window)
     {
         uint16_t offset;
         for (int row = 0; row < row_num; row += 1) {
@@ -205,7 +205,7 @@ public:
     }
 
     void update(int x, int y, int line_num, sf::Vector2u wsize, const tn::CPU::ASMMap &asm_map,
-                const std::unique_ptr<tn::Bus> &nes, sf::RenderWindow &window)
+                const std::shared_ptr<tn::Bus> &nes, sf::RenderWindow &window)
     {
         int vspace = wsize.y * 0.03;
 
@@ -256,7 +256,7 @@ public:
             spdlog::error("GUI-RAM load font failed!");
         }
     }
-    void update(int x, int y, int line_num, sf::Vector2u wsize, const std::unique_ptr<tn::Bus> &nes,
+    void update(int x, int y, int line_num, sf::Vector2u wsize, const std::shared_ptr<tn::Bus> &nes,
                 sf::RenderWindow &window)
     {
         int vspace = wsize.y * 0.03;
@@ -319,8 +319,8 @@ public:
     void loadCartridge()
     {
         // std::string file_path = ROOT_DIR + "/test/nesfiles/nestest.nes";
-        // std::string file_path = ROOT_DIR + "/test/nesfiles/donkey_kong.nes";
-        std::string file_path = ROOT_DIR + "/test/nesfiles/smb.nes";
+        std::string file_path = ROOT_DIR + "/test/nesfiles/donkey_kong.nes";
+        // std::string file_path = ROOT_DIR + "/test/nesfiles/smb.nes";
         cart_ = std::make_shared<tn::Cartridge>(file_path);
         if (!cart_->isNesFileLoaded()) {
             spdlog::error("{} complains it cannot load {}", __func__, file_path);
@@ -340,7 +340,7 @@ public:
     void setOAMPosition(uint x, uint y) { module_pos_.oam = {x, y}; }
 
     auto &window() { return window_; }
-    auto &nes() { return nes_; }
+    auto nes() { return nes_; }
     auto &defaultFont() { return default_font_; }
 
     void waitKeyReleased(sf::Keyboard::Key key)
@@ -405,7 +405,7 @@ public:
 private:
     sf::RenderWindow window_;
     std::shared_ptr<tn::Cartridge> cart_;
-    std::unique_ptr<tn::Bus> nes_;
+    std::shared_ptr<tn::Bus> nes_;
     tn::CPU::ASMMap asm_map_;
 
 private:

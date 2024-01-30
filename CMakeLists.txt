@@ -27,10 +27,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Add sources
 set(TINYNES_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/apu.cpp
     ${CMAKE_SOURCE_DIR}/src/bus.cpp
     ${CMAKE_SOURCE_DIR}/src/cpu.cpp
     ${CMAKE_SOURCE_DIR}/src/ppu.cpp
     ${CMAKE_SOURCE_DIR}/src/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/src/vsound.cpp
     ${CMAKE_SOURCE_DIR}/src/mappers/mapper000.cpp
 )
 
