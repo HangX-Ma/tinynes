@@ -134,6 +134,7 @@ void guiLogic(gui::GUI &gui)
 
             gui.window().display();
         }
+        sf::sleep(sf::microseconds(10));
     }
 }
 

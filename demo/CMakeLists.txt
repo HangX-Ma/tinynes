@@ -12,5 +12,11 @@ target_link_libraries(demo_cpu PRIVATE tinynes)
 add_executable(demo_ppu demo_ppu.cpp)
 target_link_libraries(demo_ppu PRIVATE tinynes)
 
+add_executable(demo_sound demo_sound.cpp)
+target_link_libraries(demo_sound PRIVATE ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
+
+add_executable(demo_sound2 demo_sound2.cpp)
+target_link_libraries(demo_sound2 PRIVATE ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
+
 add_executable(demo_vscreen demo_vscreen.cpp)
 target_link_libraries(demo_vscreen PRIVATE tinynes)
