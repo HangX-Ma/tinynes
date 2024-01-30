@@ -44,14 +44,53 @@ private:
         }
     };
 
+    struct OscillatorPulse
+    {
+        double frequency{0.0};
+        double duty_cycle{0.0};
+        double amplitude{1.0};
+        double pi{3.1415926535};
+        double harmonics{20};
+
+        double sample(double t)
+        {
+            double a = 0;
+            double b = 0;
+            double p = duty_cycle * 2.0 * pi;
+
+            // accumulate sin() calculation speed
+            auto approxsin = [](double t)
+            {
+                double j = t * 0.15915;
+                j = j - static_cast<int>(j);
+                return 20.785 * j * (j - 0.5) * (j - 1.0);
+            };
+
+            // use sine wave to generate pulse
+            for (double n = 1; n < harmonics; n += 1) {
+                double c = n * frequency * 2.0 * pi * t;
+                a += -approxsin(c) / n;
+                b += -approxsin(c - p * n) / n;
+            }
+            return (2.0 * amplitude / pi) * (a - b);
+        }
+    };
+
+    // NES Dev wiki - APU Envelope: https://www.nesdev.org/wiki/APU_Envelope
+    struct Envelope
+    {
+    };
+
     struct Sound
     {
         double sample{0.0};
         bool is_enable{false};
         Sequencer sequencer;
+        OscillatorPulse osc;
     };
 
     Sound pulse1_;
+    double global_time_{0.0};
 };
 
 } // namespace tn
