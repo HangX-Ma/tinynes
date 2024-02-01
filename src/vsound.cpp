@@ -17,7 +17,7 @@ void VSound::init(sf::Int16 length, sf::Uint32 channel_count, sf::Uint32 sample_
     nes_ = std::move(nes);
     nes_->setAudioSampleFrequency(sample_rate);
 
-    spdlog::info("[Sound]: channel num {}, sample rate {}, buffer size {}", getChannelCount(),
+    spdlog::info("Virtual Sound: channel num {}, sample rate {}, buffer size {}", getChannelCount(),
                  getSampleRate(), samples_.size());
 }
 

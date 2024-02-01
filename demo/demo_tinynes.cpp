@@ -10,7 +10,8 @@
 
 static int selected_palette{0};
 
-void guiRenderGame(gui::GUI &gui, sf::Sprite &sprite, sf::Vector2u &wsize, float elapsed_time)
+void guiRenderGame(gui::GUI &gui, sf::Sprite &sprite, sf::Vector2u &wsize,
+                   [[maybe_unused]] float elapsed_time)
 {
     std::function<uint8_t(sf::Keyboard::Key, uint8_t, std::string_view)> checker_func
         = [&](auto key, auto val, std::string_view name) -> uint8_t
