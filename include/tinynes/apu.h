@@ -26,7 +26,6 @@ private:
 private:
     // NES Dev wiki - APU Frame Counter: https://www.nesdev.org/wiki/APU_Frame_Counter
     // NES Dev wiki - APU Pulse, sequencer behavior: https://www.nesdev.org/wiki/APU_Pulse
-
     struct Sequencer
     {
         uint32_t sequence{0};
@@ -119,7 +118,7 @@ private:
 
                     if (decay_count == 0) {
                         if (is_loop) {
-                            decay_count = 15;
+                            decay_count = 20;
                         }
                     }
                     else {
@@ -132,7 +131,7 @@ private:
             }
             else {
                 is_start = false;
-                decay_count = 15;
+                decay_count = 20;
                 divider_count = constant_volume;
             }
 

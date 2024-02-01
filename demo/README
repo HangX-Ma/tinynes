@@ -1,0 +1,14 @@
+=== Note
+
+demo_cpu.cpp:
+This program is used to test cpu instruction set function.
+It cannot run normally unless you checkout to cpu initial
+state. hash code: 827c356fe7164592fda7ceb7e09effa98032d507
+
+demo_ppu.cpp:
+You can run the nes game using this demo
+
+demo_tinynes.cpp:
+This demo add APU component but runs heavily slow!!!
+
+other demos are only used for vsound and vscreen test.

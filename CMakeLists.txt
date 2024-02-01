@@ -9,11 +9,12 @@ endif()
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
 endif()
+message(STATUS "Build system using ${CMAKE_BUILD_TYPE} mode")
 
 set(BUILD_STATIC FALSE CACHE STRING "Set this to link external libraries statically")
 
 if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -g")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -Og")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
 endif()
 
@@ -73,26 +74,28 @@ add_subdirectory(demo)
 #              Test
 # =================================
 # GTest
-find_package(Threads REQUIRED)
-find_package(GTest REQUIRED)
-if (GTest_FOUND)
-    message(STATUS "Packaged version of GTest will be used.")
-else()
-    message(STATUS "Bundled version of GTest will be downloaded and used.")
-    include(FetchContent)
-    FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG release-v1.14.0
-        SOURCE_DIR ${CMAKE_SOURCE_DIR}/extern/gtest
-    )
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
-    add_library(GTest::GTest INTERFACE IMPORTED)
-    target_link_libraries(GTest::GTest INTERFACE gtest_main)
-endif()
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    find_package(Threads REQUIRED)
+    find_package(GTest REQUIRED)
+    if (GTest_FOUND)
+        message(STATUS "Packaged version of GTest will be used.")
+    else()
+        message(STATUS "Bundled version of GTest will be downloaded and used.")
+        include(FetchContent)
+        FetchContent_Declare(
+            googletest
+            GIT_REPOSITORY https://github.com/google/googletest.git
+            GIT_TAG release-v1.14.0
+            SOURCE_DIR ${CMAKE_SOURCE_DIR}/extern/gtest
+        )
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(googletest)
+        add_library(GTest::GTest INTERFACE IMPORTED)
+        target_link_libraries(GTest::GTest INTERFACE gtest_main)
+    endif()
 
-# CTest
-enable_testing()
-include_directories(${GTEST_INCLUDE_DIRS})
-add_subdirectory(test)
+    # CTest
+    enable_testing()
+    include_directories(${GTEST_INCLUDE_DIRS})
+    add_subdirectory(test)
+endif()
