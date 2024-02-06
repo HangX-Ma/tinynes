@@ -236,12 +236,12 @@ void APU::clock()
         }
 
         // update pulse1 channel
-        // pulse1_.sequencer.clock(pulse1_.is_enable,
-        //                         [](uint32_t &s)
-        //                         {
-        //                             // Shift right by 1 bit, wrapping around
-        //                             s = ((s & 0x0001) << 7) | ((s & 0x00FE) >> 1);
-        //                         });
+        pulse1_.sequencer.clock(pulse1_.is_enable,
+                                [](uint32_t &s)
+                                {
+                                    // Shift right by 1 bit, wrapping around
+                                    s = ((s & 0x0001) << 7) | ((s & 0x00FE) >> 1);
+                                });
         // pulse1_.sample = static_cast<double>(pulse1_.sequencer.output);
         // f = fCPU / (16 × (t + 1)), fCPU; 1.789773MHz NTSC
         pulse1_.osc.frequency
@@ -259,11 +259,17 @@ void APU::clock()
         }
 
         // update pulse2 channel
+        pulse2_.sequencer.clock(pulse2_.is_enable,
+                                [](uint32_t &s)
+                                {
+                                    // Shift right by 1 bit, wrapping around
+                                    s = ((s & 0x0001) << 7) | ((s & 0x00FE) >> 1);
+                                });
         pulse2_.osc.frequency
             = 1789773.0 / (16.0 * static_cast<double>(pulse2_.sequencer.reload + 1));
-
         pulse2_.osc.amplitude = static_cast<double>(pulse2_.envelope.output - 1) / 16.0;
         pulse2_.sample = pulse2_.osc.sample(global_time_);
+
         if (pulse2_.lc.counter > 0 && pulse2_.sequencer.timer >= 8 && !pulse2_.sweep.is_mute
             && pulse2_.envelope.output > 2)
         {
